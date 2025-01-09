@@ -1,77 +1,130 @@
 import streamlit as st
-from fpdf import FPDF
+import subprocess
 
-# Define the PDF class
-class PDF(FPDF):
-    def header(self):
-        self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, 'Medical Diagnostic Report', 0, 1, 'C')
+# A user database
+USER_CREDENTIALS = {
+    "admin": "password123",
+    "user1": "user1pass",
+    "user2": "user2pass"
+}
 
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
 
-    def chapter_title(self, label):
-        self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, f'{label}', 0, 1, 'L')
+# Authentication function
+def authenticate(username, password):
+    return USER_CREDENTIALS.get(username) == password
 
-    def chapter_body(self, body):
-        self.set_font('Arial', '', 12)
-        self.multi_cell(0, 10, body)
-        self.ln()
 
-st.title('Medical Data Analysis')
+# Initialize session state
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "login"
 
-with st.form(key='medical_form'):
-    st.write("Please enter the following data:")
-    heart_rate = st.number_input('Heart Rate (bpm)', min_value=0, value=70)
-    blood_pressure = st.number_input('Blood Pressure (mmHg)', min_value=0, value=120)
-    o2_level = st.number_input('Oxygen Saturation (%)', min_value=0, max_value=100, value=98)
-    temperature = st.number_input('Temperature (°F)', min_value=80.0, value=98.6)
-    iron_level = st.number_input('Iron Level (mg/dL)', min_value=0, value=50)
-    submit_button = st.form_submit_button(label='Calculate')
 
-if submit_button:
-    risk_anaemia = "High Risk" if iron_level < 10 else "Low Risk"
-    risk_diabetes = "High Risk" if heart_rate > 90 else "Low Risk"
-    risk_heart_conditions = "High Risk" if heart_rate > 120 else "Low Risk"
-    risk_vitamin_deficiency = "High Risk" if o2_level < 97 else "Low Risk"
+# Login page
+def login_page():
+    st.title("Login")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+    login_button = st.button("Login")
 
-    # Generate PDF
-    pdf = PDF()
-    pdf.add_page()
-    pdf.set_font('Arial', 'B', 12)
-    pdf.cell(0, 10, 'Medical Results:', 0, 1)
-    pdf.set_font('Arial', '', 12)
-    pdf.cell(0, 10, f'Heart Rate: {heart_rate} bpm', 0, 1)
-    pdf.cell(0, 10, f'Blood Pressure: {blood_pressure}', 0, 1)
-    pdf.cell(0, 10, f'Oxygen Saturation: {o2_level}%', 0, 1)
-    pdf.cell(0, 10, f'Temperature: {temperature}°F', 0, 1)
-    pdf.cell(0, 10, f'Iron Level: {iron_level} mg/dL', 0, 1)
-    pdf.ln(10)
-    pdf.chapter_title('Risk Analysis')
-    risks = f'Anaemia: {risk_anaemia}\nDiabetes: {risk_diabetes}\nHeart Conditions: {risk_heart_conditions}\nVitamin Deficiency: {risk_vitamin_deficiency}'
-    pdf.chapter_body(risks)
+    if login_button:
+        if authenticate(username, password):
+            st.session_state.authenticated = True
+            st.session_state.current_page = "generate_report"
+            st.success("Login successful!")
+        else:
+            st.error("Invalid username or password.")
 
-    # Concluding Statement
-    conclusion = "Concluding Advice: Maintain a balanced diet, regular exercise, and follow up with your physician regularly."
-    pdf.chapter_title('Concluding Statement')
-    pdf.chapter_body(conclusion)
 
-    # Save PDF to a temporary file
-    pdf.output('medical_report.pdf')
+# Report generation page
+def report_generation_page():
+    st.title("Medical Diagnostic Report Generator")
 
-    # Display results and provide download link
-    st.subheader('Results:')
-    st.write(f"Risk of Anaemia: {risk_anaemia}")
-    st.write(f"Risk of Diabetes: {risk_diabetes}")
-    st.write(f"Risk of Heart Conditions: {risk_heart_conditions}")
-    st.write(f"Risk of Vitamin Deficiency: {risk_vitamin_deficiency}")
-    with open("medical_report.pdf", "rb") as file:
-        btn = st.download_button(
-            label="Download Medical Report",
-            data=file,
-            file_name="medical_report.pdf",
-            mime="application/pdf"
-        )
+    with st.form(key="input_form"):
+        st.write("Enter the following details to generate the report:")
+
+        # Required inputs
+        heart_rate = st.number_input("Heart Rate (bpm):", min_value=0)
+        blood_pressure = st.number_input("Blood Pressure (mmHg):", min_value=0)
+        o2_level = st.number_input("Oxygen Saturation (%):", min_value=0, max_value=100)
+        temperature = st.number_input("Temperature (°F):", min_value=80.0, value=98.6)
+        iron_level = st.number_input("Iron Level (mg/dL):", min_value=0)
+
+        email = st.text_input("Email (optional):", placeholder="Enter email to send the report")
+
+        # Submit button
+        submit_button = st.form_submit_button(label="Generate PDF")
+
+    # Form submission
+    if submit_button:
+        # PDF file path
+        output_file = "generated_medical_report.pdf"
+
+        try:
+            command = [
+                "python", "generate_pdf.py",
+                "--heart_rate", str(heart_rate),
+                "--blood_pressure", str(blood_pressure),
+                "--o2_level", str(o2_level),
+                "--temperature", str(temperature),
+                "--iron_level", str(iron_level),
+                "--output", output_file
+            ]
+            subprocess.run(command, check=True)
+
+            # Display success message
+            st.success("PDF generated successfully!")
+
+            # Provide download link
+            with open(output_file, "rb") as pdf_file:
+                st.download_button(
+                    label="Download PDF",
+                    data=pdf_file,
+                    file_name="medical_report.pdf",
+                    mime="application/pdf"
+                )
+
+            # Send email if email is provided
+            if email:
+                import smtplib
+                from email.message import EmailMessage
+
+                st.info(f"Sending the report to {email}...")
+                try:
+                    msg = EmailMessage()
+                    msg["Subject"] = "Medical Diagnostic Report"
+                    msg["From"] = "email@gmail.com"  # Replace with your email
+                    msg["To"] = email
+                    msg.set_content("Attached is your medical diagnostic report.")
+
+                    with open(output_file, "rb") as pdf:
+                        msg.add_attachment(pdf.read(), maintype="application",
+                                           subtype="pdf", filename="medical_report.pdf")
+
+                    # Send the email (need to configure SMTP server)
+                    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                        server.starttls()
+                        server.login("email@gmail.com", "password")  # Replace with credentials
+                        server.send_message(msg)
+
+                    st.success(f"Report sent to {email} successfully!")
+                except Exception as e:
+                    st.error(f"Failed to send email: {e}")
+        except subprocess.CalledProcessError as e:
+            st.error(f"Failed to generate the PDF: {e}")
+
+    # Logout
+    if st.button("Logout"):
+        st.session_state.authenticated = False
+        st.session_state.current_page = "login"
+
+
+# Main app logic
+if st.session_state.current_page == "login":
+    login_page()
+elif st.session_state.current_page == "generate_report" and st.session_state.authenticated:
+    report_generation_page()
+else:
+    st.session_state.current_page = "login"
+    login_page()

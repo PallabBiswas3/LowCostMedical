@@ -101,8 +101,12 @@ def report_generation_page():
     with st.form(key="input_form"):
         st.write("Enter the following details to generate the report:")
 
+        # Patient details
+        patient_name = st.text_input("Patient Name:")
+        patient_age = st.number_input("Patient Age:", min_value=0)
+        patient_gender = st.selectbox("Patient Gender:", ["Select", "Male", "Female", "Other"])
+
         # Required inputs
-        patient_name = st.text_input("Patient name:", placeholder="John Doe")
         heart_rate = st.number_input("Heart Rate (bpm):", min_value=0)
         blood_pressure = st.number_input("Blood Pressure (mmHg):", min_value=0)
         o2_level = st.number_input("Oxygen Saturation (%):", min_value=0, max_value=100)
@@ -135,18 +139,18 @@ def report_generation_page():
                 try:
                     msg = EmailMessage()
                     msg["Subject"] = "Medical Diagnostic Report"
-                    msg["From"] = "email@gmail.com"  # Replace with your email
+                    msg["From"] = "10minutemail24@gmail.com"  # My email
                     msg["To"] = email
                     msg.set_content("Attached is your medical diagnostic report.")
 
                     with open(output_file, "rb") as pdf:
                         msg.add_attachment(pdf.read(), maintype="application",
-                                           subtype="pdf", filename="medical_report.pdf")
+                                           subtype="pdf", filename=f"medical_report_{patient_name}.pdf")
 
                     # Send the email (need to configure SMTP server)
                     with smtplib.SMTP("smtp.gmail.com", 587) as server:
                         server.starttls()
-                        server.login("email@gmail.com", "password")  # Replace with credentials
+                        server.login("10minutemail24@gmail.com", "cngc yfqa diec texl")  # Credentials
                         server.send_message(msg)
 
                     st.success(f"Report sent to {email} successfully!")

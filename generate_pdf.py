@@ -1,23 +1,24 @@
 from fpdf import FPDF
+import fpdf
 
 
 # Define the PDF class
 class PDF(FPDF):
     def header(self):
-        self.set_font('Arial', 'B', 12)
+        self.set_font('Helvetica', 'B', 12)  # Change to Helvetica or another available font in fpdf2
         self.cell(0, 10, 'Medical Diagnostic Report', 0, 1, 'C')
 
     def footer(self):
         self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
+        self.set_font('Helvetica', 'I', 8)  # Change to Helvetica
         self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
 
     def chapter_title(self, label):
-        self.set_font('Arial', 'B', 12)
+        self.set_font('Helvetica', 'B', 12)  # Change to Helvetica
         self.cell(0, 10, f'{label}', 0, 1, 'L')
 
     def chapter_body(self, body):
-        self.set_font('Arial', '', 12)
+        self.set_font('Helvetica', '', 12)  # Change to Helvetica
         self.multi_cell(0, 10, body)
         self.ln()
 
@@ -32,9 +33,9 @@ def create_medical_report(output_path, heart_rate, blood_pressure, o2_level, tem
     # Generate PDF
     pdf = PDF()
     pdf.add_page()
-    pdf.set_font('Arial', 'B', 12)
+    pdf.set_font('Helvetica', 'B', 12)  # Change to Helvetica
     pdf.cell(0, 10, 'Medical Results:', 0, 1)
-    pdf.set_font('Arial', '', 12)
+    pdf.set_font('Helvetica', '', 12)  # Change to Helvetica
     pdf.cell(0, 10, f'Heart Rate: {heart_rate} bpm', 0, 1)
     pdf.cell(0, 10, f'Blood Pressure: {blood_pressure}', 0, 1)
     pdf.cell(0, 10, f'Oxygen Saturation: {o2_level}%', 0, 1)
@@ -51,7 +52,8 @@ def create_medical_report(output_path, heart_rate, blood_pressure, o2_level, tem
     pdf.chapter_body(risks)
 
     # Concluding Statement
-    conclusion = "Concluding Advice: Maintain a balanced diet, regular exercise, and follow up with your physician regularly."
+    conclusion = \
+        "Concluding Advice: Maintain a balanced diet, regular exercise, and follow up with your physician regularly."
     pdf.chapter_title('Concluding Statement')
     pdf.chapter_body(conclusion)
 

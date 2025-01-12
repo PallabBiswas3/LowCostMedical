@@ -16,7 +16,7 @@ def authenticate(username, password):
     return USER_CREDENTIALS.get(username) == password
 
 
-def create_medical_report(collection_date, report_date, patient_name, patient_age, patient_gender, patient_referee,
+def create_medical_report(collection_date, report_date, patient_name, patient_age_gender, patient_referee,
                           patient_phone, patient_ID, report_ID, o2_level, temperature, pulse_rate, blood_pressure):
     class PDF(FPDF):
         def header(self):
@@ -106,7 +106,7 @@ def create_medical_report(collection_date, report_date, patient_name, patient_ag
     # Add patient information
     left_info = {
         'Name': patient_name,
-        'Age/Gender': f'{patient_age}/{patient_gender}',
+        'Age/Gender': patient_age_gender,
         'Referred By': patient_referee,
     }
     right_info = {
@@ -180,7 +180,7 @@ def create_medical_report(patient_name, patient_age, patient_gender, collection_
     pdf.chapter_body(risks)
 
     # Concluding Statement
-    conclusion = \
+    conclusion = 
         "Concluding Advice: Maintain a balanced diet, regular exercise, and follow up with your physician regularly."
     pdf.chapter_title('Concluding Statement')
     pdf.chapter_body(conclusion)
@@ -189,7 +189,6 @@ def create_medical_report(patient_name, patient_age, patient_gender, collection_
     output_file = "generated_medical_report.pdf"
     pdf.output(output_file)
     return output_file"""
-
 
 # Initialize session state
 if "authenticated" not in st.session_state:
@@ -222,19 +221,18 @@ def report_generation_page():
         st.write("Enter the following details to generate the report:")
 
         # Patient details
-        collection_date = st.text_input("PCollection Date:")
-        report_date = st.text_input("Report:")
+        collection_date = st.text_input("Collection Date:")
+        report_date = st.text_input("Report Date:")
         report_ID = st.number_input("Report ID:", min_value=0)
         patient_ID = st.number_input("Patient ID:", min_value=0)
         patient_name = st.text_input("Patient Name:")
-        patient_age = st.number_input("Patient Age:", min_value=0)
-        patient_gender = st.selectbox("Patient Gender:", ["Select", "Male", "Female", "Other"])
+        patient_age_gender = st.text_input("Patient Age/Gender:")
         patient_referee = st.text_input("Referred by:")
         patient_phone = st.number_input("Patient Contact details:", min_value=0)
 
         # Required inputs
         pulse_rate = st.number_input("Pulse Rate (bpm):", min_value=0)
-        blood_pressure = st.number_input("Blood Pressure (mmHg):", min_value=0)
+        blood_pressure = st.text_input("Blood Pressure (mmHg):")
         o2_level = st.number_input("Sp_O2 (%):", min_value=0, max_value=100)
         temperature = st.number_input("Temperature (°F):", min_value=80.0, value=98.6)
 
@@ -247,9 +245,10 @@ def report_generation_page():
     if submit_button:
         try:
             output_file = (
-                create_medical_report(collection_date, report_date, patient_name, patient_age, patient_referee,
+                create_medical_report(collection_date, report_date, patient_name, patient_age_gender, patient_referee,
                                       patient_phone, patient_ID, report_ID, o2_level,
-                                      temperature, pulse_rate, blood_pressure))
+                                      temperature, pulse_rate, blood_pressure)
+            )
             st.success("PDF generated successfully!")
 
             # Provide download link

@@ -1,12 +1,7 @@
 import streamlit as st
-import subprocess
-from generate_pdf import create_medical_report
-
-import sys
-print(f"Python executable: {sys.executable}")
-import os
-print(f"Working directory: {os.getcwd()}")
-
+from fpdf import FPDF
+import smtplib
+from email.message import EmailMessage
 
 # A user database
 USER_CREDENTIALS = {
@@ -19,6 +14,61 @@ USER_CREDENTIALS = {
 # Authentication function
 def authenticate(username, password):
     return USER_CREDENTIALS.get(username) == password
+
+
+# Define the PDF class
+class PDF(FPDF):
+    def header(self):
+        self.set_font('Helvetica', 'B', 12)
+        self.cell(0, 10, 'Medical Diagnostic Report', 0, 1, 'C')
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Helvetica', 'I', 8)
+        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+
+    def chapter_title(self, label):
+        self.set_font('Helvetica', 'B', 12)
+        self.cell(0, 10, f'{label}', 0, 1, 'L')
+
+    def chapter_body(self, body):
+        self.set_font('Helvetica', '', 12)
+        self.multi_cell(0, 10, body)
+        self.ln()
+
+
+# Function to generate the PDF
+def create_medical_report(heart_rate, blood_pressure, o2_level, temperature, iron_level):
+    pdf = PDF()
+    pdf.add_page()
+    pdf.set_font('Helvetica', 'B', 12)
+    pdf.cell(0, 10, 'Medical Results:', 0, 1)
+    pdf.set_font('Helvetica', '', 12)
+    pdf.cell(0, 10, f'Heart Rate: {heart_rate} bpm', 0, 1)
+    pdf.cell(0, 10, f'Blood Pressure: {blood_pressure}', 0, 1)
+    pdf.cell(0, 10, f'Oxygen Saturation: {o2_level}%', 0, 1)
+    pdf.cell(0, 10, f'Temperature: {temperature}°F', 0, 1)
+    pdf.cell(0, 10, f'Iron Level: {iron_level} mg/dL', 0, 1)
+    pdf.ln(10)
+    pdf.chapter_title('Risk Analysis')
+    risks = (
+        f"Anaemia: {'High Risk' if iron_level < 10 else 'Low Risk'}\n"
+        f"Diabetes: {'High Risk' if heart_rate > 90 else 'Low Risk'}\n"
+        f"Heart Conditions: {'High Risk' if heart_rate > 120 else 'Low Risk'}\n"
+        f"Vitamin Deficiency: {'High Risk' if o2_level < 97 else 'Low Risk'}"
+    )
+    pdf.chapter_body(risks)
+
+    # Concluding Statement
+    conclusion = \
+        "Concluding Advice: Maintain a balanced diet, regular exercise, and follow up with your physician regularly."
+    pdf.chapter_title('Concluding Statement')
+    pdf.chapter_body(conclusion)
+
+    # Save PDF
+    output_file = "generated_medical_report.pdf"
+    pdf.output(output_file)
+    return output_file
 
 
 # Initialize session state
@@ -40,7 +90,6 @@ def login_page():
             st.session_state.authenticated = True
             st.session_state.current_page = "generate_report"
             st.success("Login successful!")
-            st.session_state.query_params = {"page": "generate_report"}
         else:
             st.error("Invalid username or password.")
 
@@ -53,6 +102,7 @@ def report_generation_page():
         st.write("Enter the following details to generate the report:")
 
         # Required inputs
+        patient_name = st.text_input("Patient name:", placeholder="John Doe")
         heart_rate = st.number_input("Heart Rate (bpm):", min_value=0)
         blood_pressure = st.number_input("Blood Pressure (mmHg):", min_value=0)
         o2_level = st.number_input("Oxygen Saturation (%):", min_value=0, max_value=100)
@@ -66,22 +116,8 @@ def report_generation_page():
 
     # Form submission
     if submit_button:
-        # PDF file path
-        output_file = "generated_medical_report.pdf"
-
         try:
-            command = [
-                "python", "generate_pdf.py",
-                "--heart_rate", str(heart_rate),
-                "--blood_pressure", str(blood_pressure),
-                "--o2_level", str(o2_level),
-                "--temperature", str(temperature),
-                "--iron_level", str(iron_level),
-                "--output", output_file
-            ]
-            subprocess.run(command, check=True)
-
-            # Display success message
+            output_file = create_medical_report(heart_rate, blood_pressure, o2_level, temperature, iron_level)
             st.success("PDF generated successfully!")
 
             # Provide download link
@@ -95,9 +131,6 @@ def report_generation_page():
 
             # Send email if email is provided
             if email:
-                import smtplib
-                from email.message import EmailMessage
-
                 st.info(f"Sending the report to {email}...")
                 try:
                     msg = EmailMessage()
@@ -119,10 +152,10 @@ def report_generation_page():
                     st.success(f"Report sent to {email} successfully!")
                 except Exception as e:
                     st.error(f"Failed to send email: {e}")
-        except subprocess.CalledProcessError as e:
+        except Exception as e:
             st.error(f"Failed to generate the PDF: {e}")
 
-    # Logout
+    # Logout button
     if st.button("Logout"):
         st.session_state.authenticated = False
         st.session_state.current_page = "login"

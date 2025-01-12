@@ -52,6 +52,7 @@ def create_medical_report(collection_date, report_date, patient_name, patient_ag
             self.set_draw_color(0, 0, 0)
             self.line(10, self.get_y(), 200, self.get_y())
 
+        @staticmethod
         def flag_result(self, result, range_str):
             if '/' in result:
                 result_systolic, result_diastolic = map(float, result.split('/'))
@@ -82,7 +83,7 @@ def create_medical_report(collection_date, report_date, patient_name, patient_ag
             col_widths = [80, 30, 30, 30, 20]
             headers = ['TEST DESCRIPTION', 'RESULT', 'FLAG', 'REF. RANGE', 'UNIT']
             for i, header in enumerate(headers):
-                self.cell(col_widths[i], 10, header, 1, 0, 'C', 1)
+                self.cell(col_widths[i], 10, header, 1, 0, 'C', True)
             self.ln()
             self.set_font('Arial', '', 12)
             for test in test_info:
@@ -129,66 +130,8 @@ def create_medical_report(collection_date, report_date, patient_name, patient_ag
     pdf.test_table(test_info)
 
     # Output PDF
-    pdf.output(f'medical_report_{patient_name}.pdf')
+    pdf.output(f'medical_report{patient_name}.pdf')
 
-
-"""class PDF(FPDF):
-    def header(self):
-        self.set_font('Helvetica', 'B', 12)
-        self.cell(0, 10, 'Medical Diagnostic Report', 0, 1, 'C')
-
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Helvetica', 'I', 8)
-        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
-
-    def chapter_title(self, label):
-        self.set_font('Helvetica', 'B', 12)
-        self.cell(0, 10, f'{label}', 0, 1, 'L')
-
-    def chapter_body(self, body):
-        self.set_font('Helvetica', '', 12)
-        self.multi_cell(0, 10, body)
-        self.ln()
-
-
-# Function to generate the PDF
-def create_medical_report(patient_name, patient_age, patient_gender, collection_date, heart_rate,
-                          blood_pressure, o2_level, temperature, iron_level):
-    pdf = PDF()
-    pdf.add_page()
-    pdf.set_font('Helvetica', 'B', 12)
-    pdf.cell(0, 10, 'Medical Results:', 0, 1)
-    pdf.set_font('Helvetica', '', 12)
-    pdf.cell(0, 10, f'Name: {collection_date}', 0, 1)
-    pdf.cell(0, 10, f'Name: {patient_name}', 0, 1)
-    pdf.cell(0, 10, f'Age: {patient_age}', 0, 1)
-    pdf.cell(0, 10, f'Gender: {patient_gender}', 0, 1)
-    pdf.cell(0, 10, f'Heart Rate: {heart_rate} bpm', 0, 1)
-    pdf.cell(0, 10, f'Blood Pressure: {blood_pressure}', 0, 1)
-    pdf.cell(0, 10, f'Oxygen Saturation: {o2_level}%', 0, 1)
-    pdf.cell(0, 10, f'Temperature: {temperature}°F', 0, 1)
-    pdf.cell(0, 10, f'Iron Level: {iron_level} mg/dL', 0, 1)
-    pdf.ln(10)
-    pdf.chapter_title('Risk Analysis')
-    risks = (
-        f"Anaemia: {'High Risk' if iron_level < 10 else 'Low Risk'}\n"
-        f"Diabetes: {'High Risk' if heart_rate > 90 else 'Low Risk'}\n"
-        f"Heart Conditions: {'High Risk' if heart_rate > 120 else 'Low Risk'}\n"
-        f"Vitamin Deficiency: {'High Risk' if o2_level < 97 else 'Low Risk'}"
-    )
-    pdf.chapter_body(risks)
-
-    # Concluding Statement
-    conclusion = 
-        "Concluding Advice: Maintain a balanced diet, regular exercise, and follow up with your physician regularly."
-    pdf.chapter_title('Concluding Statement')
-    pdf.chapter_body(conclusion)
-
-    # Save PDF
-    output_file = "generated_medical_report.pdf"
-    pdf.output(output_file)
-    return output_file"""
 
 # Initialize session state
 if "authenticated" not in st.session_state:

@@ -1,30 +1,40 @@
 import streamlit as st
+import psycopg2
+from psycopg2 import sql
 from fpdf import FPDF
 import smtplib
 from email.message import EmailMessage
 
-# A user database
-USER_CREDENTIALS = {
-    "admin": "password123",
-    "user1": "user1pass",
-    "user2": "user2pass"
+# Database connection
+DB_CONFIG = {
+    "dbname": "Solar_med",
+    "user": "postgres",
+    "password": "Ankana@Postgres17",
+    "host": "localhost",
+    "port": "5432"
 }
+
+
+def get_db_connection():
+    return psycopg2.connect(**DB_CONFIG)
 
 
 # Authentication function
 def authenticate(username, password):
-    return USER_CREDENTIALS.get(username) == password
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT password FROM users WHERE username = %s", (username,))
+    stored_password = cur.fetchone()
+    conn.close()
+    return stored_password and stored_password[0] == password
 
 
-def create_medical_report(collection_date, report_date, patient_name, patient_age_gender, patient_referee,
-                          patient_phone, patient_ID, report_ID, o2_level, temperature, pulse_rate, blood_pressure):
+# PDF generation function
+def create_medical_report(data):
     class PDF(FPDF):
         def header(self):
             self.set_font('Arial', 'B', 14)
-            self.image('logo.png', 10, 8, 33)
-            self.cell(0, 10, '', ln=True)
-            self.cell(0, 10, 'TreeMed', 0, 1, 'C')
-            self.cell(0, 10, 'hello@treemed.in          +91 721302', 0, 1, 'C')
+            self.cell(0, 10, 'TreeMed - Medical Report', 0, 1, 'C')
             self.ln(10)
 
         def footer(self):
@@ -32,116 +42,62 @@ def create_medical_report(collection_date, report_date, patient_name, patient_ag
             self.set_font('Arial', 'I', 8)
             self.cell(0, 10, '~End of report~', 0, 0, 'C')
 
-        def patient_info(self, left_info, right_info):
+        def patient_info(self, details):
             self.set_font('Arial', '', 12)
-            initial_y = self.get_y()
-            self.multi_cell(95, 10, "\n".join([f"{k}: {v}" for k, v in left_info.items()]), 0, 'L')
-            self.set_y(initial_y)
-            self.set_x(105)
-            self.multi_cell(95, 10, "\n".join([f"{k}: {v}" for k, v in right_info.items()]), 0, 'L')
+            for key, value in details.items():
+                self.cell(0, 10, f"{key}: {value}", 0, 1)
+            self.ln(5)
+
+        def test_results(self, tests):
+            self.set_font('Arial', 'B', 12)
+            self.cell(0, 10, "Test Results:", 0, 1)
+            self.set_font('Arial', '', 12)
+            for key, value in tests.items():
+                self.cell(0, 10, f"{key}: {value}", 0, 1)
             self.ln(10)
 
-        def add_dates(self, left_date_info, right_date_info):
-            self.set_font('Arial', '', 12)
-            initial_y = self.get_y()
-            self.multi_cell(95, 10, "\n".join([f"{k}: {v}" for k, v in left_date_info.items()]), 0, 'L')
-            self.set_y(initial_y)
-            self.set_x(105)
-            self.multi_cell(95, 10, "\n".join([f"{k}: {v}" for k, v in right_date_info.items()]), 0, 'L')
-            self.ln(10)
-            self.set_draw_color(0, 0, 0)
-            self.line(10, self.get_y(), 200, self.get_y())
-
-        def flag_result(self, result, range_str):
-            try:
-                if isinstance(result, float):  # Directly check for floats and handle them separately
-                    result = str(result)  # Convert float to string if needed
-
-                if '/' in result:
-                    result_systolic, result_diastolic = map(float, result.split('/'))
-                    range_systolic, range_diastolic = range_str.split(' - ')
-                    systolic_bounds = list(map(float, range_systolic.split('/')))
-                    diastolic_bounds = list(map(float, range_diastolic.split('/')))
-
-                    if not (systolic_bounds[0] <= result_systolic <= systolic_bounds[1]) or \
-                        not (diastolic_bounds[0] <= result_diastolic <= diastolic_bounds[1]):
-                        return 'Out of range'
-                else:
-                    result = float(result)  # Ensure result is a float for comparison
-                    bounds = range_str.replace('%', '').split('-')
-                    lower_bound = float(bounds[0].strip())
-                    upper_bound = float(bounds[1].strip())
-
-                    if not (lower_bound <= result <= upper_bound):
-                        return 'Out of range'
-            except Exception as e:
-                print(f"Error processing result {result} with range {range_str}: {e}")
-                return ''  # Return empty flag if there is an error
-
-            return ''
-
-
-        def chapter_title(self, title):
-            self.set_font('Arial', 'B', 12)
-            self.cell(0, 10, title, 0, 1, 'L')
-
-        def test_table(self, test_info):
-            self.set_fill_color(200, 220, 255)
-            self.set_font('Arial', 'B', 12)
-            col_widths = [80, 30, 30, 30, 20]
-            headers = ['TEST DESCRIPTION', 'RESULT', 'FLAG', 'REF. RANGE', 'UNIT']
-            for i, header in enumerate(headers):
-                self.cell(col_widths[i], 10, header, 1, 0, 'C', 1)
-            self.ln()
-            self.set_font('Arial', '', 12)
-            for test in test_info:
-                flag = self.flag_result(test['result'], test['range'])
-                self.cell(col_widths[0], 10, test['description'], 1)
-                self.cell(col_widths[1], 10, str(test['result']), 1)
-                self.cell(col_widths[2], 10, flag, 1)
-                self.cell(col_widths[3], 10, test['range'], 1)
-                self.cell(col_widths[4], 10, test['unit'], 1)
-                self.ln()
-
-    # Create PDF object
     pdf = PDF()
     pdf.add_page()
+    pdf.patient_info({
+        "Name": data['patient_name'],
+        "Age/Gender": data['patient_age_gender'],
+        "Referred By": data['patient_referee'],
+        "Phone": data['patient_phone'],
+        "Patient ID": data['patient_id'],
+        "Report ID": data['report_id'],
+        "Collection Date": data['collection_date'],
+        "Report Date": data['report_date']
+    })
+    pdf.test_results({
+        "SpO2": data['o2_level'],
+        "Temperature": data['temperature'],
+        "Pulse Rate": data['pulse_rate'],
+        "Blood Pressure": data['blood_pressure']
+    })
 
-    # Add date information
-    date_info_left = {'Collection Date': collection_date}
-    date_info_right = {'Report Date': report_date}
-    pdf.add_dates(date_info_left, date_info_right)
-
-    # Add patient information
-    left_info = {
-        'Name': patient_name,
-        'Age/Gender': patient_age_gender,
-        'Referred By': patient_referee,
-    }
-    right_info = {
-        'Phone No.': patient_phone,
-        'Patient ID': patient_ID,
-        'Report ID': report_ID,
-    }
-    pdf.patient_info(left_info, right_info)
-
-    # Add chapter title
-    pdf.chapter_title('General Body Checkup')
-
-    # Test information
-    test_info = [
-        {'description': 'SpO2', 'result': o2_level, 'flag': '', 'range': '94-100%', 'unit': '%'},
-        {'description': 'Temperature', 'result': temperature, 'flag': '', 'range': '97.8-99.1', 'unit': '°F'},
-        {'description': 'Pulse Rate', 'result': pulse_rate, 'flag': '', 'range': '60-100', 'unit': 'bpm'},
-        {'description': 'BP', 'result': blood_pressure, 'flag': '', 'range': '90/60 - 140/90', 'unit': 'mmHg'}
-    ]
-    pdf.test_table(test_info)
-
-    # Output PDF
-
-    output_file = "generated_medical_report.pdf"
+    output_file = "medical_report.pdf"
     pdf.output(output_file)
     return output_file
+
+
+# Store response in database
+def save_response(data):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO responses (
+            collection_date, report_date, report_id, patient_id, patient_name,
+            patient_age_gender, patient_referee, patient_phone, pulse_rate,
+            blood_pressure, o2_level, temperature
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (
+        data['collection_date'], data['report_date'], data['report_id'],
+        data['patient_id'], data['patient_name'], data['patient_age_gender'],
+        data['patient_referee'], data['patient_phone'], data['pulse_rate'],
+        data['blood_pressure'], data['o2_level'], data['temperature']
+    ))
+    conn.commit()
+    conn.close()
 
 
 # Initialize session state
@@ -172,75 +128,56 @@ def report_generation_page():
     st.title("Medical Diagnostic Report Generator")
 
     with st.form(key="input_form"):
-        st.write("Enter the following details to generate the report:")
+        st.write("Enter patient details:")
+        data = {
+            "collection_date": st.text_input("Collection Date"),
+            "report_date": st.text_input("Report Date"),
+            "report_id": st.number_input("Report ID", min_value=0),
+            "patient_id": st.number_input("Patient ID", min_value=0),
+            "patient_name": st.text_input("Patient Name"),
+            "patient_age_gender": st.text_input("Patient Age/Gender"),
+            "patient_referee": st.text_input("Referred By"),
+            "patient_phone": st.text_input("Phone Number"),
+            "pulse_rate": st.number_input("Pulse Rate (bpm)", min_value=0),
+            "blood_pressure": st.text_input("Blood Pressure (mmHg)"),
+            "o2_level": st.text_input("SpO2 (%)"),
+            "temperature": st.number_input("Temperature (°F)", min_value=80.0, value=98.6),
+            "email": st.text_input("Email (optional)", placeholder="Enter email to send the report")
+        }
+        submit_button = st.form_submit_button("Generate PDF")
 
-        # Patient details
-        collection_date = st.text_input("Collection Date:")
-        report_date = st.text_input("Report Date:")
-        report_ID = st.number_input("Report ID:", min_value=0)
-        patient_ID = st.number_input("Patient ID:", min_value=0)
-        patient_name = st.text_input("Patient Name:")
-        patient_age_gender = st.text_input("Patient Age/Gender:")
-        patient_referee = st.text_input("Referred by:")
-        patient_phone = st.number_input("Patient Contact details:", min_value=0)
-
-        # Required inputs
-        pulse_rate = st.number_input("Pulse Rate (bpm):", min_value=0)
-        blood_pressure = st.text_input("Blood Pressure (mmHg):")
-        o2_level = st.text_input("Sp_O2 (%):")
-        temperature = st.number_input("Temperature (°F):", min_value=80.0, value=98.6)
-
-        email = st.text_input("Email (optional):", placeholder="Enter email to send the report")
-
-        # Submit button
-        submit_button = st.form_submit_button(label="Generate PDF")
-
-    # Form submission
     if submit_button:
         try:
-            output_file = (
-                create_medical_report(collection_date, report_date, patient_name, patient_age_gender, patient_referee,
-                                      patient_phone, patient_ID, report_ID, o2_level,
-                                      temperature, pulse_rate, blood_pressure)
-            )
+            save_response(data)
+            output_file = create_medical_report(data)
             st.success("PDF generated successfully!")
 
-            # Provide download link
             with open(output_file, "rb") as pdf_file:
-                st.download_button(
-                    label="Download PDF",
-                    data=pdf_file,
-                    file_name="medical_report.pdf",
-                    mime="application/pdf"
-                )
+                st.download_button(label="Download PDF",
+                                   data=pdf_file,
+                                   file_name="medical_report.pdf",
+                                   mime="application/pdf")
 
-            # Send email if email is provided
-            if email:
-                st.info(f"Sending the report to {email}...")
-                try:
-                    msg = EmailMessage()
-                    msg["Subject"] = "Medical Diagnostic Report"
-                    msg["From"] = "10minutemail24@gmail.com"  # My email
-                    msg["To"] = email
-                    msg.set_content("Attached is your medical diagnostic report.")
+            if data["email"]:
+                st.info(f"Sending report to {data['email']}...")
+                msg = EmailMessage()
+                msg["Subject"] = "Medical Diagnostic Report"
+                msg["From"] = "10minutemail24@gmail.com"
+                msg["To"] = data["email"]
+                msg.set_content("Attached is your medical diagnostic report.")
 
-                    with open(output_file, "rb") as pdf:
-                        msg.add_attachment(pdf.read(), maintype="application",
-                                           subtype="pdf", filename=f"medical_report_{patient_name}.pdf")
+                with open(output_file, "rb") as pdf:
+                    msg.add_attachment(pdf.read(), maintype="application", subtype="pdf", filename="medical_report.pdf")
 
-                    # Send the email (need to configure SMTP server)
-                    with smtplib.SMTP("smtp.gmail.com", 587) as server:
-                        server.starttls()
-                        server.login("10minutemail24@gmail.com", "cngc yfqa diec texl")  # Credentials
-                        server.send_message(msg)
+                with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                    server.starttls()
+                    server.login("10minutemail24@gmail.com", "cngc yfqa diec texl")
+                    server.send_message(msg)
 
-                    st.success(f"Report sent to {email} successfully!")
-                except Exception as e:
-                    st.error(f"Failed to send email: {e}")
+                st.success("Report sent successfully!")
         except Exception as e:
-            st.error(f"Failed to generate the PDF: {e}")
+            st.error(f"Error: {e}")
 
-    # Logout button
     if st.button("Logout"):
         st.session_state.authenticated = False
         st.session_state.current_page = "login"

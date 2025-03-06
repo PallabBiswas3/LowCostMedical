@@ -5,7 +5,7 @@ def create_medical_report(collection_date, report_date, patient_name, patient_ag
     class PDF(FPDF):
         def header(self):
             self.set_font('Arial', 'B', 14)
-            self.image('logo.png', 10, 8, 33)
+            self.image('../assets/logo.png', 10, 8, 33)
             self.cell(0, 10, '', ln=True)
             self.cell(0, 10, 'TreeMed', 0, 1, 'C')
             self.cell(0, 10, 'hello@treemed.in          +91 721302', 0, 1, 'C')
@@ -42,7 +42,7 @@ def create_medical_report(collection_date, report_date, patient_name, patient_ag
                 range_systolic, range_diastolic = range_str.split(' - ')
                 systolic_bounds = list(map(float, range_systolic.split('/')))
                 diastolic_bounds = list(map(float, range_diastolic.split('/')))
-                
+
                 if not (systolic_bounds[0] <= result_systolic <= systolic_bounds[1]) or \
                    not (diastolic_bounds[0] <= result_diastolic <= diastolic_bounds[1]):
                     return 'Out of range'
@@ -113,7 +113,8 @@ def create_medical_report(collection_date, report_date, patient_name, patient_ag
     pdf.test_table(test_info)
 
     # Output PDF
-    pdf.output('treemed_report_final_2.pdf')
+    pdf.output('treemed_report.pdf')
+
 
 # Example usage
 create_medical_report(

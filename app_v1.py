@@ -67,7 +67,7 @@ def report_generation_page():
     # Form submission
     if submit_button:
         # PDF file path
-        output_file = "generated_medical_report.pdf"
+        output_file = "generated_files/generated_medical_report.pdf"
 
         try:
             command = [

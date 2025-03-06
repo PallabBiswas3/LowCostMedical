@@ -5,7 +5,7 @@ def create_medical_report(Collection_Date, Report_Date, Name, Age_Gender, Referr
     class PDF(FPDF):
         def header(self):
             self.set_font('Arial', 'B', 14)
-            self.image('logo.png', 10, 8, 33)
+            self.image('../assets/logo.png', 10, 8, 33)
             self.cell(0, 10, '', ln=True)
             self.cell(0, 10, 'TreeMed', 0, 1, 'C')
             self.cell(0, 10, 'hello@treemed.in          +91 721302', 0, 1, 'C')

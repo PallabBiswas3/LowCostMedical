@@ -1,0 +1,40 @@
+CREATE TABLE IF NOT EXISTS users (
+  username TEXT PRIMARY KEY,
+  password TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS responses (
+  id SERIAL PRIMARY KEY,
+  username TEXT REFERENCES users(username) ON DELETE CASCADE,
+  collection_date DATE NOT NULL,
+  report_date DATE NOT NULL,
+  patient_name TEXT NOT NULL,
+  patient_age_gender TEXT NOT NULL,
+  patient_referee TEXT,
+  patient_phone TEXT,
+  patient_ID TEXT UNIQUE,
+  report_ID TEXT UNIQUE,
+  o2_level REAL,
+  temperature REAL,
+  pulse_rate INTEGER,
+  blood_pressure TEXT,
+  vision TEXT,
+  breathing TEXT,
+  hearing TEXT,
+  skin_condition TEXT,
+  oral_health TEXT,
+  urine_color TEXT,
+  hair_loss TEXT,
+  nail_changes TEXT,
+  cataract TEXT,
+  disabilities TEXT
+);
+
+--INSERT INTO users (username, password) VALUES
+  --('admin', 'password');
+  --('john_doe', 'securepassword123'),
+  --('jane_smith', 'mypassword456'),
+  --('alice_wonder', 'alicepass789');
+
+--SELECT * FROM users;
+SELECT * FROM responses;

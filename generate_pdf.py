@@ -9,7 +9,7 @@ def create_medical_report(data):
             self.cell(0, 10, '', ln=True)
             self.cell(0, 10, 'TreeMed', 0, 1, 'C')
             self.cell(0, 10, 'hello@treemed.in          +91 721302', 0, 1, 'C')
-            self.ln(10)
+            # self.ln(10)
 
         def footer(self):
             self.set_y(-15)
@@ -24,7 +24,7 @@ def create_medical_report(data):
             self.set_x(105)
             self.multi_cell(95, 10, "\n".join([f"{k}: {v}" for k, v in right_info.items()]), 0, 'L')
             self.line(10, self.get_y(), 200, self.get_y())
-            self.ln(10)
+            # self.ln(10)
 
         def add_dates(self, left_date_info, right_date_info):
             self.set_font('Arial', '', 12)
@@ -33,7 +33,7 @@ def create_medical_report(data):
             self.set_y(initial_y)
             self.set_x(105)
             self.multi_cell(95, 10, "\n".join([f"{k}: {v}" for k, v in right_date_info.items()]), 0, 'L')
-            self.ln(10)
+            # self.ln(10)
             self.set_draw_color(0, 0, 0)
             self.line(10, self.get_y(), 200, self.get_y())
 
@@ -103,7 +103,7 @@ def create_medical_report(data):
                 self.cell(col_widths[0], 10, str(i+1)+'.', 1, align='C')
                 self.cell(col_widths[1], 10, test['description'], 1)
                 self.cell(col_widths[2], 10, test['result'], 1)
-                self.ln()
+                # self.ln()
 
     pdf = PDF()
     pdf.add_page()

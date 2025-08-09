@@ -34,11 +34,11 @@ def create_medical_report(data):
     class PDF(FPDF):
         def header(self):
             self.set_font('Arial', 'B', 14)
-            self.image('assets/logo.png', 10, 8, 33)
+            # self.image('assets/logo.png', 10, 8, 33)
             self.cell(0, 10, '', ln=True)
-            self.cell(0, 10, 'TreeMed', 0, 1, 'C')
-            self.cell(0, 10, 'hello@treemed.in          +91 721302', 0, 1, 'C')
-            self.ln(10)
+            self.cell(0, 8, 'TreeMed', 0, 1, 'C')
+            # self.cell(0, 10, 'hello@treemed.in          +91 721302', 0, 1, 'C')
+            # self.ln(10)
 
         def footer(self):
             self.set_y(-15)
@@ -53,7 +53,7 @@ def create_medical_report(data):
             self.set_x(105)
             self.multi_cell(95, 10, "\n".join([f"{k}: {v}" for k, v in right_info.items()]), 0, 'L')
             self.line(10, self.get_y(), 200, self.get_y())
-            self.ln(10)
+            # self.ln(10)
 
         def add_dates(self, left_date_info, right_date_info):
             self.set_font('Arial', '', 12)
@@ -62,7 +62,7 @@ def create_medical_report(data):
             self.set_y(initial_y)
             self.set_x(105)
             self.multi_cell(95, 10, "\n".join([f"{k}: {v}" for k, v in right_date_info.items()]), 0, 'L')
-            self.ln(10)
+            # self.ln(10)
             self.set_draw_color(0, 0, 0)
             self.line(10, self.get_y(), 200, self.get_y())
 
@@ -104,19 +104,21 @@ def create_medical_report(data):
         def test_table_1(self, test_info):
             self.set_fill_color(200, 220, 255)
             self.set_font('Arial', 'B', 12)
-            col_widths = [80, 30, 30, 30, 20]
-            headers = ['VITALS', 'RESULT', 'FLAG', 'REF. RANGE', 'UNIT']
+            # col_widths = [80, 30, 30, 30, 20]
+            col_widths = [35, 35, 35, 85]
+            headers = ['VITALS', 'RESULT', 'REF. RANGE', 'REMARKS']
             for i, header in enumerate(headers):
                 self.cell(col_widths[i], 10, header, 1, 0, 'C', True)
             self.ln()
             self.set_font('Arial', '', 12)
             for test in test_info:
-                flag = self.flag_result(test['result'], test['range'], range_str=2000)
+                # flag = self.flag_result(test['result'], test['range'], range_str=2000)
                 self.cell(col_widths[0], 10, test['description'], 1)
                 self.cell(col_widths[1], 10, str(test['result']), 1)
-                self.cell(col_widths[2], 10, flag, 1)
-                self.cell(col_widths[3], 10, test['range'], 1)
-                self.cell(col_widths[4], 10, test['unit'], 1)
+                # self.cell(col_widths[2], 10, flag, 1)
+                self.cell(col_widths[2], 10, test['range'], 1)
+                # self.cell(col_widths[4], 10, test['unit'], 1)
+                self.cell(col_widths[3], 10, test['remarks'], 1)
                 self.ln()
 
         def test_table_2(self, test_info):
@@ -159,12 +161,18 @@ def create_medical_report(data):
     pdf.chapter_title('Body Vitals')
 
     # Vitals Test information
+    # test_info_vitals = [
+    #     {'description': 'SpO2', 'result': data['o2_level'], 'flag': '', 'range': '94-100%', 'unit': '%'},
+    #     {'description': 'Temperature', 'result': data['temperature'], 'flag': '', 'range': '97.8-99.1', 'unit': '°F'},
+    #     {'description': 'Pulse Rate', 'result': data['pulse_rate'], 'flag': '', 'range': '60-100', 'unit': 'bpm'},
+    #     {'description': 'BP', 'result': data['blood_pressure'], 'flag': '', 'range': '90/60 - 140/90', 'unit': 'mmHg'}
+    # ]
     test_info_vitals = [
-        {'description': 'SpO2', 'result': data['o2_level'], 'flag': '', 'range': '94-100%', 'unit': '%'},
-        {'description': 'Temperature', 'result': data['temperature'], 'flag': '', 'range': '97.8-99.1', 'unit': '°F'},
-        {'description': 'Pulse Rate', 'result': data['pulse_rate'], 'flag': '', 'range': '60-100', 'unit': 'bpm'},
-        {'description': 'BP', 'result': data['blood_pressure'], 'flag': '', 'range': '90/60 - 140/90', 'unit': 'mmHg'}
-    ]
+            {'description': 'SpO2', 'result': data['o2_level'], 'range': '94-100%', 'remarks': ''},
+            {'description': 'Temperature', 'result': data['temperature'], 'range': '97.8-99.1', 'remarks': ''},
+            {'description': 'Pulse Rate', 'result': data['pulse_rate'], 'range': '60-100', 'remarks': ''},
+            {'description': 'BP', 'result': data['blood_pressure'], 'range': '90/60 - 140/90', 'remarks': ''}
+        ]
     pdf.test_table_1(test_info_vitals)
 
     # Add chapter title

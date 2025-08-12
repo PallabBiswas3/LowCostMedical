@@ -1,0 +1,41 @@
+1. Time series for temperature
+SELECT
+  collection_date AS time,
+  temperature
+FROM responses
+ORDER BY collection_date;
+
+2. Gauge or Time Series for SpO2
+SELECT
+  collection_date AS time,
+  o2_level
+FROM responses
+ORDER BY collection_date;
+
+3. Time series for BP
+SELECT
+  collection_date AS time,
+  split_part(blood_pressure, '/', 1)::int AS systolic,
+  split_part(blood_pressure, '/', 2)::int AS diastolic
+FROM responses
+ORDER BY collection_date;
+
+4.Pie chart or vision
+SELECT
+  vision AS label,
+  COUNT(*) AS value
+FROM responses
+GROUP BY vision;
+
+5. Histogram for Age; Pie chart for Gender.
+SELECT
+  split_part(patient_age_gender, '/', 1)::int AS age,
+  split_part(patient_age_gender, '/', 2) AS gender
+FROM responses;
+
+6. Repeat for other tests
+SELECT
+  hair_loss,
+  COUNT(*) AS total
+FROM responses
+GROUP BY hair_loss;

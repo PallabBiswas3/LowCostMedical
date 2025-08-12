@@ -416,6 +416,8 @@ def report_generation_page():
             "patient_referee": st.text_input("Referred By", value="Dr. Smith"),
             "patient_phone": st.text_input("Phone Number", value="9876543210"),
             "email": st.text_input("Email (optional)", value="", placeholder="Enter email to send the report"),
+            "weight": st.number_input("Weight (kg)", min_value=0),
+            "height": st.number_input("Height (cm)", min_value=0),
             "pulse_rate": st.number_input("Pulse Rate (bpm)", min_value=0, value=72),
             "blood_pressure": st.text_input("Blood Pressure (mmHg)", value="120/80"),
             "o2_level": st.text_input("SpO2 (%)", value="98"),

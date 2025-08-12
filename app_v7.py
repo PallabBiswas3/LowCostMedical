@@ -323,7 +323,7 @@ def save_response(data):
             pulse_rate, blood_pressure, o2_level, temperature, vision, breathing, hearing, 
             skin_condition, oral_health, urine_color, hair_loss, nail_changes, 
             cataract, disabilities
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, (
         data['collection_date'], data['report_date'], data['report_ID'],
         data['patient_ID'], data['patient_name'], data['patient_age_gender'],
@@ -453,7 +453,10 @@ def report_generation_page():
     merged_pdf_path = None
     if submit:
         try:
-            # save_response(data)
+            # Calculate BMI first
+            data["bmi"] = calculate_bmi(data.get("weight"), data.get("height"))
+
+            save_response(data)
             output_file = create_medical_report(data)
             st.success("PDF generated successfully!")
 

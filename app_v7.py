@@ -5,18 +5,27 @@ from PyPDF2 import PdfMerger
 import psycopg2
 
 
-# Database connection
-DB_CONFIG = {
-    "dbname": "Solar_med",
-    "user": "postgres",
-    "password": "Ankana@Postgres17",
-    "host": "localhost",
-    "port": "5432"
-}
+from dotenv import load_dotenv
+import os
 
+# Load environment variables from .env file
+load_dotenv()
 
 def get_db_connection():
-    return psycopg2.connect(**DB_CONFIG)
+    """Create a database connection using environment variables"""
+    try:
+        conn = psycopg2.connect(
+            dbname=os.getenv('DB_NAME'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            host=os.getenv('DB_HOST'),
+            port=os.getenv('DB_PORT')
+        )
+        return conn
+    except psycopg2.OperationalError as e:
+        print(f"Error connecting to database: {e}")
+        print("Please check your .env file and ensure PostgreSQL is running.")
+        raise
 
 
 def authenticate(username, password):
@@ -343,7 +352,34 @@ if "current_page" not in st.session_state:
     st.session_state.current_page = "login"
 
 
+def register_user(username, password):
+    """Register a new user in the database"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Check if user already exists
+        cur.execute("SELECT * FROM users WHERE username = %s", (username,))
+        if cur.fetchone() is not None:
+            return False, "Username already exists"
+            
+        # Insert new user
+        cur.execute(
+            "INSERT INTO users (username, password) VALUES (%s, %s)",
+            (username, password)
+        )
+        conn.commit()
+        return True, "Registration successful!"
+    except Exception as e:
+        return False, f"Error during registration: {str(e)}"
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+
 def login_page():
+    """Render the login/registration page"""
+    # Add custom CSS
     st.markdown("""
         <style>
             body {
@@ -370,33 +406,82 @@ def login_page():
                 border: 1px solid #ccc;
             }
             .stButton > button {
-                background-color: #0077cc;
                 color: white;
                 padding: 12px 0;
                 font-size: 16px;
                 border-radius: 6px;
                 font-weight: bold;
-                width: 20%;
-                margin-top: 10px;
-                justify: center;
+                width: 45%;
+                margin: 5px;
+            }
+            .button-container {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 20px;
+            }
+            .register-link {
+                text-align: center;
+                margin-top: 20px;
+                cursor: pointer;
+                color: #0077cc;
+                text-decoration: underline;
             }
         </style>
 
         <div class="login-box">
             <div class="login-title">Solar-Powered Mobile Health Measurement Device</div>
     """, unsafe_allow_html=True)
+    
     st.markdown("</div>", unsafe_allow_html=True)
 
-    st.title("Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    if st.button("Login"):
-        if authenticate(username, password):
-            st.session_state.authenticated = True
-            st.session_state.current_page = "generate_report"
-            st.success("Login successful!")
-        else:
-            st.error("Invalid credentials")
+    # Toggle between login and registration
+    if 'show_register' not in st.session_state:
+        st.session_state.show_register = False
+
+    if st.session_state.show_register:
+        st.title("Register")
+        new_username = st.text_input("Choose a username")
+        new_password = st.text_input("Choose a password", type="password")
+        confirm_password = st.text_input("Confirm password", type="password")
+        
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("Register", type="primary"):
+                if not new_username or not new_password:
+                    st.error("Username and password are required")
+                elif new_password != confirm_password:
+                    st.error("Passwords do not match")
+                else:
+                    success, message = register_user(new_username, new_password)
+                    if success:
+                        st.success(message)
+                        st.session_state.show_register = False
+                    else:
+                        st.error(message)
+        with col2:
+            if st.button("Back to Login"):
+                st.session_state.show_register = False
+                st.experimental_rerun()
+    else:
+        st.title("Login")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("Login", type="primary"):
+                if authenticate(username, password):
+                    st.session_state.authenticated = True
+                    st.session_state.current_page = "generate_report"
+                    st.experimental_rerun()
+                else:
+                    st.error("Invalid credentials")
+        with col2:
+            if st.button("Register"):
+                st.session_state.show_register = True
+                st.experimental_rerun()
+        
+        st.markdown("<div class='register-link' onclick='window.location.href="";'>Don't have an account? Register here</div>", unsafe_allow_html=True)
 
 
 def report_generation_page():
@@ -519,8 +604,70 @@ def report_generation_page():
     if st.button("Logout"):
         st.session_state.authenticated = False
         st.session_state.current_page = "login"
+        st.experimental_rerun()  # Force a rerun to update the page
 
 
+def init_db():
+    """Initialize the database with required tables if they don't exist"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Create users table if it doesn't exist
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(50) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Create responses table if it doesn't exist
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS responses (
+                id SERIAL PRIMARY KEY,
+                collection_date DATE,
+                report_date DATE,
+                report_id INTEGER,
+                patient_id INTEGER,
+                patient_name VARCHAR(100),
+                patient_age_gender VARCHAR(50),
+                patient_referee VARCHAR(100),
+                patient_phone VARCHAR(20),
+                weight NUMERIC(5,2),
+                height NUMERIC(5,2),
+                bmi NUMERIC(5,2),
+                pulse_rate INTEGER,
+                blood_pressure VARCHAR(20),
+                o2_level VARCHAR(10),
+                temperature NUMERIC(5,2),
+                vision VARCHAR(50),
+                breathing TEXT,
+                hearing TEXT,
+                skin_condition TEXT,
+                oral_health TEXT,
+                urine_color TEXT,
+                hair_loss TEXT,
+                nail_changes TEXT,
+                cataract TEXT,
+                disabilities TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        conn.commit()
+        print("Database initialized successfully")
+    except Exception as e:
+        print(f"Error initializing database: {e}")
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+# Initialize database when the app starts
+init_db()
+
+# Main application flow
 if st.session_state.current_page == "login":
     login_page()
 elif st.session_state.current_page == "generate_report":

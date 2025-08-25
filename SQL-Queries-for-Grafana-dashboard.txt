@@ -1,41 +1,113 @@
-1. Time series for temperature
-SELECT
-  collection_date AS time,
-  temperature
-FROM responses
-ORDER BY collection_date;
+-- ===== Gauge Panels =====
 
-2. Gauge or Time Series for SpO2
+-- 1. SpO2 Gauge
 SELECT
-  collection_date AS time,
-  o2_level
+  o2_level::numeric AS value,
+  0 AS min,
+  100 AS max
 FROM responses
-ORDER BY collection_date;
+ORDER BY collection_date DESC
+LIMIT 1;
 
-3. Time series for BP
+-- 2. BMI Gauge
 SELECT
-  collection_date AS time,
+  bmi::numeric AS value,
+  0 AS min,
+  50 AS max
+FROM responses
+ORDER BY collection_date DESC
+LIMIT 1;
+
+-- 3. Pulse Rate Gauge
+SELECT
+  pulse_rate AS value,
+  40 AS min,
+  200 AS max
+FROM responses
+ORDER BY collection_date DESC
+LIMIT 1;
+
+-- 4. Temperature Gauge
+SELECT
+  temperature AS value,
+  95 AS min,
+  105 AS max
+FROM responses
+ORDER BY collection_date DESC
+LIMIT 1;
+
+-- 5. Blood Pressure Gauge
+SELECT
   split_part(blood_pressure, '/', 1)::int AS systolic,
-  split_part(blood_pressure, '/', 2)::int AS diastolic
+  split_part(blood_pressure, '/', 2)::int AS diastolic,
+  60 AS min,
+  200 AS max
 FROM responses
-ORDER BY collection_date;
+ORDER BY collection_date DESC
+LIMIT 1;
 
-4.Pie chart or vision
+-- ===== Stat Panels =====
+
+-- 1. Weight Stat
 SELECT
-  vision AS label,
-  COUNT(*) AS value
+  weight AS value,
+  'kg' AS unit
 FROM responses
-GROUP BY vision;
+ORDER BY collection_date DESC
+LIMIT 1;
 
-5. Histogram for Age; Pie chart for Gender.
+-- 2. Height Stat
+SELECT
+  height AS value,
+  'cm' AS unit
+FROM responses
+ORDER BY collection_date DESC
+LIMIT 1;
+
+-- ===== Table Panel =====
+-- General Health Questionnaire Responses
+SELECT
+  collection_date AS "Date",
+  vision AS "Vision",
+  breathing AS "Breathing",
+  hearing AS "Hearing",
+  skin_condition AS "Skin Condition",
+  oral_health AS "Oral Health",
+  urine_color AS "Urine Color",
+  hair_loss AS "Hair Loss",
+  nail_changes AS "Nail Changes",
+  cataract AS "Cataract",
+  disabilities AS "Disabilities"
+FROM responses
+ORDER BY collection_date DESC
+LIMIT 10;
+
+-- ===== Additional Analytics =====
+
+-- Age Distribution
 SELECT
   split_part(patient_age_gender, '/', 1)::int AS age,
   split_part(patient_age_gender, '/', 2) AS gender
 FROM responses;
 
-6. Repeat for other tests
+-- Response Counts by Category
 SELECT
-  hair_loss,
-  COUNT(*) AS total
+  'Vision' AS category, vision AS response, COUNT(*) AS count
 FROM responses
-GROUP BY hair_loss;
+GROUP BY vision
+UNION ALL
+SELECT
+  'Hearing', hearing, COUNT(*)
+FROM responses
+GROUP BY hearing
+UNION ALL
+SELECT
+  'Skin Condition', skin_condition, COUNT(*)
+FROM responses
+GROUP BY skin_condition
+UNION ALL
+SELECT
+  'Oral Health', oral_health, COUNT(*)
+FROM responses
+GROUP BY oral_health
+ORDER BY category, count DESC;

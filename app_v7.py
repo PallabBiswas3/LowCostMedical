@@ -3,10 +3,27 @@ import smtplib
 from email.message import EmailMessage
 from PyPDF2 import PdfMerger
 import psycopg2
-
-
+from pathlib import Path
 from dotenv import load_dotenv
 import os
+from datetime import datetime
+
+# Set page config first
+st.set_page_config(
+    page_title="Medical Report System",
+    page_icon="🏥",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Load custom CSS
+def load_css():
+    css_path = Path(_file_).parent / "static" / "styles.css"
+    with open(css_path) as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+# Initialize the app with custom styles
+load_css()
 
 # Load environment variables from .env file
 load_dotenv()
@@ -27,7 +44,6 @@ def get_db_connection():
         print("Please check your .env file and ensure PostgreSQL is running.")
         raise
 
-
 def authenticate(username, password):
     conn = get_db_connection()
     cur = conn.cursor()
@@ -35,7 +51,6 @@ def authenticate(username, password):
     stored_password = cur.fetchone()
     conn.close()
     return stored_password and stored_password[0] == password
-
 
 def calculate_bmi(weight, height):
     if not weight or not height or height == 0:
@@ -46,7 +61,6 @@ def calculate_bmi(weight, height):
     except (TypeError, ValueError):
         return "NA"
 
-
 def comments_to_paragraph(comments):
     if not comments:
         return "No significant abnormalities detected."
@@ -56,7 +70,6 @@ def comments_to_paragraph(comments):
         return comments[0] + " and " + comments[1]
     else:
         return ", ".join(comments[:-1]) + ", and " + comments[-1]
-
 
 def analyze_numerical_vitals(data):
     comments = []
@@ -135,7 +148,6 @@ def analyze_numerical_vitals(data):
 
     return comments
 
-
 def analyze_subjective_answers(data):
     comments = []
 
@@ -168,7 +180,6 @@ def analyze_subjective_answers(data):
         comments.append("Mouth condition may depict an underlying symptom.")
 
     return comments
-
 
 def create_medical_report(data):
     from fpdf import FPDF
@@ -318,7 +329,6 @@ def create_medical_report(data):
     pdf.output(output_file)
     return output_file
 
-
 # the below function's inputs are not exactly correct, need toto correct them
 # also need to update database columns accordingly
 # need to create .env file for secret keys and privacy
@@ -345,12 +355,10 @@ def save_response(data):
     conn.commit()
     conn.close()
 
-
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "current_page" not in st.session_state:
     st.session_state.current_page = "login"
-
 
 def register_user(username, password):
     """Register a new user in the database"""
@@ -376,237 +384,353 @@ def register_user(username, password):
         if 'conn' in locals():
             conn.close()
 
-
 def login_page():
-    """Render the login/registration page"""
-    # Add custom CSS
     st.markdown("""
-        <style>
-            body {
-                background-color: #f5f5f5;
-            }
-            .login-box {
-                background-color: #ffffff;
-                padding: 30px 30px;
-                width: 700px;
-                margin: 10px auto;
-                border-radius: 12px;
-                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-            }
-            .login-title {
-                font-size:30px;
-                font-weight: 800;
-                text-align: center;
-                margin-bottom: 20px;
-                color: #333333;
-            }
-            .stTextInput > div > div > input {
-                padding: 20px;
-                border-radius: 6px;
-                border: 1px solid #ccc;
-            }
-            .stButton > button {
-                color: white;
-                padding: 12px 0;
-                font-size: 16px;
-                border-radius: 6px;
-                font-weight: bold;
-                width: 45%;
-                margin: 5px;
-            }
-            .button-container {
-                display: flex;
-                justify-content: space-between;
-                margin-top: 20px;
-            }
-            .register-link {
-                text-align: center;
-                margin-top: 20px;
-                cursor: pointer;
-                color: #0077cc;
-                text-decoration: underline;
-            }
-        </style>
-
-        <div class="login-box">
-            <div class="login-title">Solar-Powered Mobile Health Measurement Device</div>
+    <div class="auth-container">
+        <h1 class="text-center">👨‍⚕ Medical Report System</h1>
+        <p class="text-center mb-3">Please login or register to continue</p>
     """, unsafe_allow_html=True)
+    
+    tab1, tab2 = st.tabs(["Login", "Register"])
+    
+    with tab1:
+        with st.form("login_form"):
+            st.markdown("<h2 class='text-center'>🔑 Login</h2>", unsafe_allow_html=True)
+            username = st.text_input("Username", placeholder="Enter your username")
+            password = st.text_input("Password", type="password", placeholder="Enter your password")
+            login_button = st.form_submit_button("Login", type="primary", use_container_width=True)
+            
+            if login_button:
+                if not username or not password:
+                    st.error("Please fill in all fields")
+                elif authenticate(username, password):
+                    st.session_state.authenticated = True
+                    st.session_state.current_page = "report_generation"
+                    st.session_state.username = username
+                    st.rerun()
+                else:
+                    st.error("❌ Invalid username or password")
+    
+    with tab2:
+        with st.form("register_form"):
+            st.markdown("<h2 class='text-center'>📝 Register</h2>", unsafe_allow_html=True)
+            new_username = st.text_input("Choose a username", placeholder="Enter a username")
+            new_password = st.text_input("Choose a password", type="password", 
+                                       placeholder="Create a strong password")
+            confirm_password = st.text_input("Confirm password", type="password", 
+                                           placeholder="Re-enter your password")
+            register_button = st.form_submit_button("Create Account", type="primary", 
+                                                 use_container_width=True)
+            
+            if register_button:
+                if not new_username or not new_password or not confirm_password:
+                    st.error("Please fill in all fields")
+                elif new_password != confirm_password:
+                    st.error("❌ Passwords do not match")
+                else:
+                    if register_user(new_username, new_password):
+                        st.success("✅ Registration successful! Please login.")
+                    else:
+                        st.error("❌ Username already exists")
     
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Toggle between login and registration
-    if 'show_register' not in st.session_state:
-        st.session_state.show_register = False
-
-    if st.session_state.show_register:
-        st.title("Register")
-        new_username = st.text_input("Choose a username")
-        new_password = st.text_input("Choose a password", type="password")
-        confirm_password = st.text_input("Confirm password", type="password")
-        
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            if st.button("Register", type="primary"):
-                if not new_username or not new_password:
-                    st.error("Username and password are required")
-                elif new_password != confirm_password:
-                    st.error("Passwords do not match")
-                else:
-                    success, message = register_user(new_username, new_password)
-                    if success:
-                        st.success(message)
-                        st.session_state.show_register = False
-                    else:
-                        st.error(message)
-        with col2:
-            if st.button("Back to Login"):
-                st.session_state.show_register = False
-                st.experimental_rerun()
-    else:
-        st.title("Login")
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            if st.button("Login", type="primary"):
-                if authenticate(username, password):
-                    st.session_state.authenticated = True
-                    st.session_state.current_page = "generate_report"
-                    st.experimental_rerun()
-                else:
-                    st.error("Invalid credentials")
-        with col2:
-            if st.button("Register"):
-                st.session_state.show_register = True
-                st.experimental_rerun()
-        
-        st.markdown("<div class='register-link' onclick='window.location.href="";'>Don't have an account? Register here</div>", unsafe_allow_html=True)
-
-
 def report_generation_page():
-    st.title("Medical Diagnostic Report Generator")
-
-    final_pdf_path = None
-    # uploaded_pdf = None
-    with st.form(key="input_form"):
-        st.write("Enter patient details:")
-        data = {
-            "collection_date": st.text_input("Collection Date", value="2025-04-15"),
-            "report_date": st.text_input("Report Date", value="2025-04-15"),
-            "report_ID": st.number_input("Report ID", min_value=0, value=1001),
-            "patient_ID": st.number_input("Patient ID", min_value=0, value=5001),
-            "patient_name": st.text_input("Patient Name", value="John Doe"),
-            "patient_age_gender": st.text_input("Patient Age/Gender", value="30/M"),
-            "patient_referee": st.text_input("Referred By", value="Dr. Smith"),
-            "patient_phone": st.text_input("Phone Number", value="9876543210"),
-            "email": st.text_input("Email (optional)", value="", placeholder="Enter email to send the report"),
-            "weight": st.number_input("Weight (kg)", min_value=0),
-            "height": st.number_input("Height (cm)", min_value=0),
-            "pulse_rate": st.number_input("Pulse Rate (bpm)", min_value=0, value=72),
-            "blood_pressure": st.text_input("Blood Pressure (mmHg)", value="120/80"),
-            "o2_level": st.text_input("SpO2 (%)", value="98"),
-            "temperature": st.number_input("Temperature (°F)", min_value=80.0, value=98.6),
-            "vision": st.radio("Can you see clearly without glasses?", ["Yes", "No", "Not Sure"], index=0),
-            "breathing": st.radio("Do you experience difficulty in breathing?",
-                                  ["No difficulty", "Often, even at rest", "Occasionally, during physical activity",
-                                   "Only during certain conditions"], index=0),
-            "hearing": st.radio("Do you have any difficulty in hearing?",
-                                ["No", "Yes, in one ear", "Yes, in both ears", "Not Sure"], index=0),
-            "skin_condition": st.radio("Do you have any visible skin conditions?",
-                                       ["Not Sure", "Yes, mild", "Yes, moderate", "Yes, severe"], index=0),
-            "oral_health": st.radio("Do you experience any mouth conditions?",
-                                    ["No issues", "Bleeding gums", "Bad breath", "Frequent mouth ulcers",
-                                     "Tooth pain or sensitivity"], index=0),
-            "urine_color": st.radio("What is your usual urine colour?",
-                                    ["Clear", "Pale yellow", "Dark yellow", "Brownish/red (seek medical attention)"],
-                                    index=0),
-            "hair_loss": st.radio("Have you noticed significant hair loss recently?",
-                                  ["No", "Yes, mild hair loss", "Yes, moderate hair loss", "Yes, severe hair loss"],
-                                  index=0),
-            "nail_changes": st.radio("Have you noticed any unusual changes in your nail colour?",
-                                     ["No", "Yes, white spots", "Yes, yellowing", "Yes, dark streaks"], index=0),
-            "cataract": st.radio("Have you been diagnosed with or noticed signs of cataract?",
-                                 ["No", "Yes, diagnosed by a doctor", "Yes, not diagnosed yet"], index=0),
-            "disabilities": st.radio("Do you have any physical disabilities?",
-                                     ["No", "Yes, partial mobility issues", "Yes, require walking aids",
-                                      "Yes, fully dependent on assistance"], index=0)
-        }
-        uploaded_pdf = st.file_uploader("Upload a PDF to merge with the report (optional)", type=["pdf"])
-        submit = st.form_submit_button("Generate PDF")
-
-    merged_pdf_path = None
-    if submit:
-        try:
-            # Calculate BMI first
-            data["bmi"] = calculate_bmi(data.get("weight"), data.get("height"))
-
-            save_response(data)
-            output_file = create_medical_report(data)
-            st.success("PDF generated successfully!")
-
-            # If a pdf is uploaded merge it
-            if uploaded_pdf is not None:
-                merger = PdfMerger()
-                merger.append(output_file)
-
-                # save uploaded pdf to a temp file
-                uploaded_path = "generated_files/uploaded.pdf"
-                with open(uploaded_path, "wb") as f:
-                    f.write(uploaded_pdf.read())
-
-                merger.append(uploaded_path)
-                merged_pdf_path = "generated_files/merged_report.pdf"
-                merger.write(merged_pdf_path)
-                merger.close()
-
-                st.session_state['final_pdf'] = merged_pdf_path
+    # Add a nice header with user info
+    if 'username' in st.session_state:
+        st.sidebar.markdown(f"### 👤 {st.session_state.username}")
+        if st.sidebar.button("Logout", type="secondary", use_container_width=True):
+            st.session_state.authenticated = False
+            st.session_state.current_page = "login"
+            st.rerun()
+    
+    st.markdown("""
+    <div class="stCard">
+        <h1 class="text-center">🏥 Medical Report Generator</h1>
+        <p class="text-center">Fill in the patient details to generate a comprehensive medical report</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    with st.form("patient_info"):
+        with st.container():
+            st.markdown("<h2>📋 Patient Information</h2>", unsafe_allow_html=True)
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                name = st.text_input("Full Name", placeholder="John Doe", key="patient_name")
+                age = st.number_input("Age", min_value=0, max_value=150, step=1, 
+                                   help="Patient's age in years", key="patient_age")
+                gender = st.selectbox("Gender", ["Select", "Male", "Female", "Other"], key="patient_gender")
+                
+            with col2:
+                weight = st.number_input("Weight (kg)", min_value=0.0, step=0.1, 
+                                      placeholder="e.g., 70.5", key="patient_weight")
+                height = st.number_input("Height (cm)", min_value=0.0, step=0.1, 
+                                      placeholder="e.g., 175.0", key="patient_height")
+                blood_pressure = st.text_input("Blood Pressure", 
+                                            placeholder="e.g., 120/80", key="patient_bp")
+            
+            st.divider()
+            st.markdown("<h2>📊 Vital Signs</h2>", unsafe_allow_html=True)
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                temperature = st.number_input("Temperature (°C)", min_value=30.0, 
+                                           max_value=45.0, step=0.1, value=37.0, key="patient_temp")
+            with col2:
+                heart_rate = st.number_input("Heart Rate (bpm)", min_value=0, 
+                                          max_value=200, step=1, value=72, key="patient_hr")
+            with col3:
+                respiratory_rate = st.number_input("Respiratory Rate (breaths/min)", 
+                                                min_value=0, max_value=100, step=1, value=16, key="patient_rr")
+            
+            # Oxygen Level
+            o2_level = st.slider("Oxygen Saturation (SpO₂ %)", min_value=70, max_value=100, 
+                               value=98, step=1, key="patient_o2")
+            
+            st.divider()
+            st.markdown("<h2>🤒 General Health Questions</h2>", unsafe_allow_html=True)
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                vision = st.selectbox("Can you see clearly without glasses?", 
+                                   ["Yes", "No, I need glasses/contacts", "Partially"], 
+                                   key="vision")
+                hearing = st.selectbox("Do you have any difficulty in hearing?", 
+                                    ["No", "Yes, mild difficulty", "Yes, significant difficulty"], 
+                                    key="hearing")
+                skin_condition = st.selectbox("Do you have any visible skin conditions?", 
+                                           ["No", "Yes, mild", "Yes, moderate", "Yes, severe"], 
+                                           key="skin_condition")
+                
+            with col2:
+                breathing = st.selectbox("Do you experience difficulty in breathing?", 
+                                      ["Never", "Occasionally", "Frequently", "Constantly"], 
+                                      key="breathing")
+                oral_health = st.selectbox("Do you experience any mouth conditions?",
+                                        ["No", "Bleeding gums", "Bad breath", "Frequent mouth ulcers", "Tooth pain or sensitivity"], 
+                                        key="oral_health")
+                urine_color = st.selectbox("What is your usual urine color?",
+                                        ["Clear", "Pale yellow", "Dark yellow", "Brownish/red (seek medical attention)"],
+                                        key="urine_color")
+            
+            st.divider()
+            st.markdown("<h2>📝 Additional Information</h2>", unsafe_allow_html=True)
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                hair_loss = st.selectbox("Have you noticed significant hair loss recently?",
+                                      ["No", "Yes, mild hair loss", "Yes, moderate hair loss", "Yes, severe hair loss"],
+                                      key="hair_loss")
+                nail_changes = st.selectbox("Any changes in your nails?",
+                                         ["No", "White spots", "Yellowing", "Dark streaks", "Brittle nails"],
+                                         key="nail_changes")
+            
+            with col2:
+                cataract = st.selectbox("Any signs of cataract or vision issues?",
+                                     ["No", "Suspected cataract", "Diagnosed cataract", "Other vision issues"],
+                                     key="cataract")
+                disabilities = st.selectbox("Any physical disabilities?",
+                                         ["No", "Mobility issues", "Visual impairment", "Hearing impairment", "Other"],
+                                         key="disabilities")
+            
+            st.divider()
+            symptoms = st.text_area("Describe any symptoms or concerns in detail", 
+                                 placeholder="Enter the patient's symptoms, duration, severity, and any other relevant information...",
+                                 height=100, key="symptoms")
+            
+            # Form submission
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                submit_button = st.form_submit_button("Generate Report", type="primary", 
+                                                   use_container_width=True)
+        
+        if submit_button:
+            # Basic validation
+            if not all([name, age, gender != "Select", weight, height, blood_pressure]):
+                st.error("Please fill in all required fields")
             else:
-                st.session_state['final_pdf'] = output_file
-            final_pdf_path = merged_pdf_path if merged_pdf_path else output_file
+                # Prepare data for report generation
+                patient_data = {
+                    'patient_name': name,
+                    'patient_age': age,
+                    'patient_gender': gender,
+                    'weight': weight,
+                    'height': height,
+                    'blood_pressure': blood_pressure,
+                    'temperature': temperature,
+                    'pulse_rate': heart_rate,
+                    'respiratory_rate': respiratory_rate,
+                    'o2_level': o2_level,
+                    'vision': vision,
+                    'hearing': hearing,
+                    'skin_condition': skin_condition,
+                    'breathing': breathing,
+                    'oral_health': oral_health,
+                    'urine_color': urine_color,
+                    'hair_loss': hair_loss,
+                    'nail_changes': nail_changes,
+                    'cataract': cataract,
+                    'disabilities': disabilities,
+                    'symptoms': symptoms,
+                    # Add current date and generate report ID
+                    'collection_date': st.session_state.get('current_date', '2023-01-01'),
+                    'report_date': st.session_state.get('current_date', '2023-01-01'),
+                    'report_ID': f"RPT-{os.urandom(4).hex().upper()}",
+                    'patient_ID': f"PAT-{os.urandom(4).hex().upper()}",
+                    'patient_referee': "Self",
+                    'patient_phone': "Not provided"
+                }
+                
+                try:
+                    # Generate and save the report
+                    report_path = create_medical_report(patient_data)
+                    save_response(patient_data)
+                    
+                    # Show success message and download button
+                    st.success("✅ Report generated successfully!")
+                    
+                    # Add download button
+                    with open(report_path, "rb") as f:
+                        st.download_button(
+                            label="📥 Download Report",
+                            data=f,
+                            file_name=f"medical_report_{patient_data['report_ID']}.pdf",
+                            mime="application/pdf",
+                            use_container_width=True
+                        )
+                    
+                    # Show a preview of the generated data
+                    with st.expander("View Generated Report Data"):
+                        st.json(patient_data, expanded=False)
+                        
+                except Exception as e:
+                    st.error(f"❌ Error generating report: {str(e)}")
 
-        except Exception as e:
-            st.error(f"Error generating report: {str(e)}")
-            st.session_state['final_pdf'] = None
-
-    # download button(outside the form)
-    if st.session_state.get('final_pdf'):
-        with open(st.session_state['final_pdf'], "rb") as pdf_file:
-            st.download_button(
-                label="Download PDF",
-                data=pdf_file,
-                file_name="medical_report.pdf",
-                mime="application/pdf"
+def init_db():
+    """Initialize the database with required tables if they don't exist"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Create users table if it doesn't exist
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(50) UNIQUE NOT NULL,
+                password VARCHAR(100) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-    # after pdf generation and optional merging
-    if data["email"] and final_pdf_path:
-        try:
-            st.info(f"Sending report to {data['email']}...")
-            msg = EmailMessage()
-            msg["Subject"] = "Medical Diagnostic Report"
-            msg["From"] = "10minutemail24@gmail.com"
-            msg["To"] = data["email"]
-            msg.set_content("Attached is your medical diagnostic report.")
+        """)
+        
+        # Create responses table if it doesn't exist
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS responses (
+                id SERIAL PRIMARY KEY,
+                collection_date DATE,
+                report_date DATE,
+                report_id VARCHAR(50),
+                patient_id VARCHAR(50),
+                patient_name VARCHAR(100),
+                patient_age_gender VARCHAR(50),
+                patient_referee VARCHAR(100),
+                patient_phone VARCHAR(20),
+                weight FLOAT,
+                height FLOAT,
+                bmi FLOAT,
+                pulse_rate INTEGER,
+                blood_pressure VARCHAR(20),
+                o2_level FLOAT,
+                temperature FLOAT,
+                vision TEXT,
+                breathing TEXT,
+                hearing TEXT,
+                skin_condition TEXT,
+                oral_health TEXT,
+                urine_color TEXT,
+                hair_loss TEXT,
+                nail_changes TEXT,
+                cataract TEXT,
+                disabilities TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_by INTEGER REFERENCES users(id)
+            )
+        """)
+        
+        conn.commit()
+        print("Database initialized successfully")
+        return True
+    except Exception as e:
+        print(f"Error initializing database: {e}")
+        return False
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
-            with open(final_pdf_path, "rb") as pdf:
-                msg.add_attachment(pdf.read(), maintype="application", subtype="pdf", filename="medical_report.pdf")
+# Initialize database when the app starts
+init_db()
 
-            with smtplib.SMTP("smtp.gmail.com", 587) as server:
-                server.starttls()
-                server.login("10minutemail24@gmail.com", "cngc yfqa diec texl")
-                server.send_message(msg)
-
-            st.success("Report sent successfully!")
-        except (smtplib.SMTPException, FileNotFoundError, OSError) as e:
-
-            st.error(f"Error sending report: {str(e)}")
-
-    if st.button("Logout"):
-        st.session_state.authenticated = False
-        st.session_state.current_page = "login"
-        st.experimental_rerun()  # Force a rerun to update the page
-
-
+# Main application flow
+if _name_ == "_main_":
+    # Add custom CSS for better styling
+    st.markdown("""
+    <style>
+        .main .block-container {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .stButton>button {
+            width: 100%;
+        }
+        .stTextInput>div>div>input, 
+        .stNumberInput>div>div>input,
+        .stSelectbox>div>div>select {
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+        }
+        .stTextArea>div>div>textarea {
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+        }
+        .stAlert {
+            border-radius: 8px;
+        }
+        .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+            color: #4361ee;
+        }
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 8px;
+        }
+        .stTabs [data-baseweb="tab"] {
+            height: 50px;
+            white-space: pre;
+            background-color: #f0f2f6;
+            border-radius: 8px 8px 0 0;
+            gap: 8px;
+            padding: 0 16px;
+        }
+        .stTabs [aria-selected="true"] {
+            background-color: #4361ee;
+            color: white;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Set the current date in session state if not set
+    if 'current_date' not in st.session_state:
+        st.session_state.current_date = datetime.now().strftime("%Y-%m-%d")
+    
+    # Handle page routing
+    if not st.session_state.get('authenticated'):
+        login_page()
+    else:
+        report_generation_page()
+        
+        # Add logout button in the sidebar
+        if st.sidebar.button("Logout", type="secondary"):
+            st.session_state.authenticated = False
+            st.session_state.current_page = "login"
+            st.rerun()
 def init_db():
     """Initialize the database with required tables if they don't exist"""
     try:

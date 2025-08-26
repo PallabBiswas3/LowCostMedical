@@ -378,75 +378,172 @@ def register_user(username, password):
 
 
 def login_page():
-    """Render the login/registration page"""
-    # Add custom CSS
+    """Render the login/registration page with an enhanced UI"""
+    # Add custom CSS with modern styling
     st.markdown("""
         <style>
+            /* Base styles */
             body {
-                background-color: #f5f5f5;
+                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             }
-            .login-box {
-                background-color: #ffffff;
-                padding: 30px 30px;
-                width: 700px;
-                margin: 10px auto;
-                border-radius: 12px;
-                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            
+            /* Card container */
+            .auth-container {
+                max-width: 450px;
+                margin: 2rem auto;
+                padding: 2.5rem;
+                background: white;
+                border-radius: 16px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
             }
-            .login-title {
-                font-size:30px;
-                font-weight: 800;
+            .auth-container:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+            }
+            
+            /* Header */
+            .auth-header {
                 text-align: center;
-                margin-bottom: 20px;
-                color: #333333;
+                margin-bottom: 2rem;
             }
+            .auth-logo {
+                width: 80px;
+                height: 80px;
+                margin: 0 auto 1rem;
+                display: block;
+                border-radius: 50%;
+                background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+                padding: 10px;
+                box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+            }
+            .auth-title {
+                font-size: 1.8rem;
+                font-weight: 700;
+                color: #2c3e50;
+                margin: 0.5rem 0;
+            }
+            .auth-subtitle {
+                color: #7f8c8d;
+                font-size: 1rem;
+                margin: 0;
+            }
+            
+            /* Form elements */
             .stTextInput > div > div > input {
-                padding: 20px;
-                border-radius: 6px;
-                border: 1px solid #ccc;
+                padding: 12px 16px;
+                border-radius: 8px;
+                border: 2px solid #e0e6ed;
+                transition: all 0.3s ease;
+                font-size: 0.95rem;
             }
+            .stTextInput > div > div > input:focus {
+                border-color: #4facfe;
+                box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.2);
+            }
+            
+            /* Buttons */
             .stButton > button {
-                color: white;
-                padding: 12px 0;
-                font-size: 16px;
-                border-radius: 6px;
-                font-weight: bold;
-                width: 45%;
-                margin: 5px;
-            }
-            .button-container {
-                display: flex;
-                justify-content: space-between;
-                margin-top: 20px;
-            }
-            .register-link {
-                text-align: center;
-                margin-top: 20px;
+                width: 100%;
+                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 1rem;
                 cursor: pointer;
-                color: #0077cc;
+                transition: all 0.3s ease;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            .stButton > button:first-of-type {
+                background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+                color: white;
+            }
+            .stButton > button:first-of-type:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+            }
+            .stButton > button:last-of-type {
+                background: white;
+                color: #4facfe;
+                border: 2px solid #e0e6ed;
+            }
+            .stButton > button:last-of-type:hover {
+                border-color: #4facfe;
+                background: #f8fafc;
+            }
+            
+            /* Toggle link */
+            .auth-toggle {
+                text-align: center;
+                margin-top: 1.5rem;
+                color: #7f8c8d;
+                font-size: 0.9rem;
+            }
+            .auth-toggle a {
+                color: #4facfe;
+                text-decoration: none;
+                font-weight: 600;
+                margin-left: 4px;
+                cursor: pointer;
+                transition: color 0.3s ease;
+            }
+            .auth-toggle a:hover {
+                color: #3a7bd5;
                 text-decoration: underline;
             }
+            
+            /* Responsive adjustments */
+            @media (max-width: 600px) {
+                .auth-container {
+                    margin: 1rem;
+                    padding: 1.5rem;
+                }
+                .auth-title {
+                    font-size: 1.5rem;
+                }
+            }
         </style>
-
-        <div class="login-box">
-            <div class="login-title">Solar-Powered Mobile Health Measurement Device</div>
     """, unsafe_allow_html=True)
     
-    st.markdown("</div>", unsafe_allow_html=True)
-
     # Toggle between login and registration
     if 'show_register' not in st.session_state:
         st.session_state.show_register = False
 
+    # Main container
+    with st.container():
+        st.markdown(
+            f"""
+            <div class="auth-container">
+                <div class="auth-header">
+                    <div class="auth-logo">
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 17L12 22L22 17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 12L12 17L22 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h1 class="auth-title">
+                        { 'Create Account' if st.session_state.show_register else 'Welcome Back' }
+                    </h1>
+                    <p class="auth-subtitle">
+                        { 'Sign up to get started' if st.session_state.show_register else 'Sign in to continue to your dashboard' }
+                    </p>
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+
     if st.session_state.show_register:
-        st.title("Register")
-        new_username = st.text_input("Choose a username")
-        new_password = st.text_input("Choose a password", type="password")
-        confirm_password = st.text_input("Confirm password", type="password")
-        
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            if st.button("Register", type="primary"):
+        with st.container():
+            st.markdown("<div class='auth-container'>", unsafe_allow_html=True)
+            
+            new_username = st.text_input("Username", key="reg_username")
+            new_password = st.text_input("Password", type="password", key="reg_password")
+            confirm_password = st.text_input("Confirm Password", type="password", key="reg_confirm")
+            
+            if st.button("Create Account", type="primary"):
                 if not new_username or not new_password:
                     st.error("Username and password are required")
                 elif new_password != confirm_password:
@@ -456,30 +553,50 @@ def login_page():
                     if success:
                         st.success(message)
                         st.session_state.show_register = False
+                        st.experimental_rerun()
                     else:
                         st.error(message)
-        with col2:
-            if st.button("Back to Login"):
-                st.session_state.show_register = False
-                st.experimental_rerun()
+            
+            st.markdown(
+                f"""
+                <div class="auth-toggle">
+                    Already have an account? <a onclick="window.parent.document.querySelector('.stButton button:last-child').click()">Sign In</a>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            
+            st.markdown("</div>", unsafe_allow_html=True)
     else:
-        st.title("Login")
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            if st.button("Login", type="primary"):
+        with st.container():
+            st.markdown("<div class='auth-container'>", unsafe_allow_html=True)
+            
+            username = st.text_input("Username", key="login_username")
+            password = st.text_input("Password", type="password", key="login_password")
+            
+            if st.button("Sign In", type="primary"):
                 if authenticate(username, password):
                     st.session_state.authenticated = True
                     st.session_state.current_page = "generate_report"
                     st.experimental_rerun()
                 else:
-                    st.error("Invalid credentials")
-        with col2:
-            if st.button("Register"):
-                st.session_state.show_register = True
-                st.experimental_rerun()
+                    st.error("Invalid username or password")
+            
+            st.markdown(
+                f"""
+                <div class="auth-toggle">
+                    Don't have an account? <a onclick="window.parent.document.querySelector('.stButton button:last-child').click()">Sign Up</a>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Toggle button for switching between login/register (hidden but needed for the JS)
+    if st.button("Switch to Register" if not st.session_state.show_register else "Back to Login", key="toggle_auth"):
+        st.session_state.show_register = not st.session_state.show_register
+        st.experimental_rerun()
         
         st.markdown("<div class='register-link' onclick='window.location.href="";'>Don't have an account? Register here</div>", unsafe_allow_html=True)
 

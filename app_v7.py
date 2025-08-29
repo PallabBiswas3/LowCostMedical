@@ -11,6 +11,7 @@ import os
 # Load environment variables from .env file
 load_dotenv()
 
+
 def get_db_connection():
     """Create a database connection using environment variables"""
     try:
@@ -710,7 +711,7 @@ def report_generation_page():
 
             with smtplib.SMTP("smtp.gmail.com", 587) as server:
                 server.starttls()
-                server.login("10minutemail24@gmail.com", "cngc yfqa diec texl")
+                server.login("10minutemail24@gmail.com", "fbwm hbsu nxnh iouj") # cngc yfqa diec texl
                 server.send_message(msg)
 
             st.success("Report sent successfully!")

@@ -322,7 +322,8 @@ def create_medical_report(data):
         {'description': 'SpO2', 'result': data.get('o2_level', ''), 'range': '94-100%', 'unit': '%'},
         {'description': 'Temperature', 'result': f"{data.get('temperature', '')}°F", 'range': '97.8-99.1', 'unit': '°F'},
         {'description': 'Pulse Rate', 'result': f"{data.get('pulse_rate', '')} bpm", 'range': '60-100', 'unit': 'bpm'},
-        {'description': 'BP', 'result': data.get('blood_pressure', ''), 'range': '90/60-140/90', 'unit': 'mmHg'}
+        {'description': 'Systolic BP', 'result': data.get('systolic_blood_pressure', ''), 'range': '90-140', 'unit': 'mmHg'},
+        {'description': 'Diastolic BP', 'result': data.get('diastolic_blood_pressure', ''), 'range': '60-140', 'unit': 'mmHg'}
     ]
     pdf.test_table_1(test_info_vitals)
 
@@ -371,7 +372,7 @@ def save_response(data):
         cols = [
             "collection_date", "report_date", "report_id", "patient_id", "patient_name",
             "patient_age_gender", "patient_referee", "patient_phone", "weight", "height",
-            "bmi", "pulse_rate", "blood_pressure", "o2_level", "temperature", "vision",
+            "bmi", "pulse_rate","Systolic_blood_pressure", "Diastolic_blood_pressure", "o2_level", "temperature", "vision",
             "breathing", "hearing", "skin_condition", "oral_health", "urine_color",
             "hair_loss", "nail_changes", "cataract", "disabilities"
         ]
@@ -455,7 +456,8 @@ def init_db():
                 height NUMERIC(7,2),
                 bmi NUMERIC(7,2),
                 pulse_rate INTEGER,
-                blood_pressure VARCHAR(20),
+                Systolic_blood_pressure VARCHAR(20),
+                Diastolic_blood_pressure VARCHAR(20),
                 o2_level VARCHAR(10),
                 temperature NUMERIC(7,2),
                 vision VARCHAR(50),
@@ -550,7 +552,8 @@ def report_generation_page():
             "weight": st.number_input("Weight (kg)", min_value=0.0, value=0.0, format="%.2f"),
             "height": st.number_input("Height (cm)", min_value=0.0, value=0.0, format="%.2f"),
             "pulse_rate": int(st.number_input("Pulse Rate (bpm)", min_value=0, value=72)),
-            "blood_pressure": st.text_input("Blood Pressure (mmHg)", value="120/80"),
+            "Systolic_blood_pressure": st.text_input("Systolic Blood Pressure (mmHg)", value="120"),
+            "Diastolic_blood_pressure": st.text_input("Diastolic Blood Pressure (mmHg)", value="80"),
             "o2_level": st.text_input("SpO2 (%)", value="98"),
             "temperature": st.number_input("Temperature (°F)", min_value=80.0, value=98.6, format="%.1f"),
             "vision": st.radio("Can you see clearly without glasses?", ["Yes", "No", "Not Sure"], index=0),
@@ -633,7 +636,8 @@ def report_generation_page():
                         data.get("height"),
                         data.get("bmi"),
                         data.get("pulse_rate"),
-                        data.get("blood_pressure"),
+                        data.get("Systolic_blood_pressure"),
+                        data.get("Diastolic_blood_pressure"),
                         data.get("o2_level"),
                         data.get("temperature"),
                     ]

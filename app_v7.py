@@ -372,7 +372,7 @@ def save_response(data):
         cols = [
             "collection_date", "report_date", "report_id", "patient_id", "patient_name",
             "patient_age_gender", "patient_referee", "patient_phone", "weight", "height",
-            "bmi", "pulse_rate","Systolic_blood_pressure", "Diastolic_blood_pressure", "o2_level", "temperature", "vision",
+            "bmi", "pulse_rate","systolic_blood_pressure", "diastolic_blood_pressure", "o2_level", "temperature", "vision",
             "breathing", "hearing", "skin_condition", "oral_health", "urine_color",
             "hair_loss", "nail_changes", "cataract", "disabilities"
         ]
@@ -456,8 +456,8 @@ def init_db():
                 height NUMERIC(7,2),
                 bmi NUMERIC(7,2),
                 pulse_rate INTEGER,
-                Systolic_blood_pressure NUMERIC(20),
-                Diastolic_blood_pressure NUMERIC(20),
+                systolic_blood_pressure NUMERIC(20),
+                diastolic_blood_pressure NUMERIC(20),
                 o2_level NUMERIC(10),
                 temperature NUMERIC(7,2),
                 vision VARCHAR(50),
@@ -552,9 +552,9 @@ def report_generation_page():
             "weight": st.number_input("Weight (kg)", min_value=0.0, value=0.0, format="%.2f"),
             "height": st.number_input("Height (cm)", min_value=0.0, value=0.0, format="%.2f"),
             "pulse_rate": int(st.number_input("Pulse Rate (bpm)", min_value=0, value=72)),
-            "Systolic_blood_pressure": st.text_input("Systolic Blood Pressure (mmHg)", value="120"),
-            "Diastolic_blood_pressure": st.text_input("Diastolic Blood Pressure (mmHg)", value="80"),
-            "o2_level": st.text_input("SpO2 (%)", value="98"),
+            "Systolic_blood_pressure": st.number_input("Systolic Blood Pressure (mmHg)", value="120"),
+            "Diastolic_blood_pressure": st.number_input("Diastolic Blood Pressure (mmHg)", value="80"),
+            "o2_level": st.number_input("SpO2 (%)", value="98"),
             "temperature": st.number_input("Temperature (°F)", min_value=80.0, value=98.6, format="%.1f"),
             "vision": st.radio("Can you see clearly without glasses?", ["Yes", "No", "Not Sure"], index=0),
             "breathing": st.radio("Do you experience difficulty in breathing?",

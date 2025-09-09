@@ -561,6 +561,7 @@ def report_generation_page():
             "Diastolic_blood_pressure": st.number_input("Diastolic Blood Pressure (mmHg)", value=80),
             "o2_level": st.number_input("SpO2 (%)", value=98),
             "temperature": st.number_input("Temperature (°F)", min_value=80.0, value=98.6, format="%.1f"),
+            "hemoglobin_level": st.number_input("Hemoglobin Level (g/dL)", min_value=0.0, max_value=25.0, value=12.5, step=0.1, format="%.1f"),
             "vision": st.radio("Can you see clearly without glasses?", ["Yes", "No", "Not Sure"], index=0),
             "breathing": st.radio("Do you experience difficulty in breathing?",
                                   ["No difficulty", "Often, even at rest", "Occasionally, during physical activity",
@@ -584,8 +585,8 @@ def report_generation_page():
                                  ["No", "Yes, diagnosed by a doctor", "Yes, not diagnosed yet"], index=0),
             "disabilities": st.radio("Do you have any physical disabilities?",
                                      ["No", "Yes, partial mobility issues", "Yes, require walking aids",
-                                      "Yes, fully dependent on assistance"], index=0),
-            "hemoglobin_level": st.number_input("Hemoglobin Level (g/dL)", min_value=0.0, max_value=25.0, value=12.5, step=0.1, format="%.1f")
+                                      "Yes, fully dependent on assistance"], index=0)
+            
         }
         uploaded_pdf = st.file_uploader("Upload a PDF to merge with the report (optional)", type=["pdf"])
         submit = st.form_submit_button("Generate PDF")

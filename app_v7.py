@@ -648,6 +648,7 @@ def report_generation_page():
                         data.get("Diastolic_blood_pressure"),
                         data.get("o2_level"),
                         data.get("temperature"),
+                        data.get("hemoglobin_level")
                     ]
                     sheet.append_row(row)
                 except Exception as e:

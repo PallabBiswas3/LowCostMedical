@@ -372,7 +372,7 @@ def save_response(data):
         cols = [
             "collection_date", "report_date", "report_id", "patient_id", "patient_name",
             "patient_age_gender", "patient_referee", "patient_phone", "weight", "height",
-            "bmi", "pulse_rate","Systolic_blood_pressure", "Diastolic_blood_pressure", "o2_level", "temperature", "vision",
+            "bmi", "pulse_rate","systolic_blood_pressure", "diastolic_blood_pressure", "o2_level", "temperature", "vision",
             "breathing", "hearing", "skin_condition", "oral_health", "urine_color",
             "hair_loss", "nail_changes", "cataract", "disabilities"
         ]
@@ -456,8 +456,8 @@ def init_db():
                 height NUMERIC(7,2),
                 bmi NUMERIC(7,2),
                 pulse_rate INTEGER,
-                Systolic_blood_pressure NUMERIC(20),
-                Diastolic_blood_pressure NUMERIC(20),
+                systolic_blood_pressure NUMERIC(20),
+                diastolic_blood_pressure NUMERIC(20),
                 o2_level NUMERIC(10),
                 temperature NUMERIC(7,2),
                 vision VARCHAR(50),

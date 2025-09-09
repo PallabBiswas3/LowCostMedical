@@ -301,7 +301,8 @@ def create_medical_report(data):
     pdf.patient_info(
         {
             'Name': data.get('patient_name', ''),
-            'Age/Gender': data.get('patient_age_gender', ''),
+            'Age': data.get('patient_age', ''),
+            'Gender': data.get('patient_gender', ''),
             'Referred By': data.get('patient_referee', '')
         },
         {
@@ -323,7 +324,8 @@ def create_medical_report(data):
         {'description': 'Temperature', 'result': f"{data.get('temperature', '')}°F", 'range': '97.8-99.1', 'unit': '°F'},
         {'description': 'Pulse Rate', 'result': f"{data.get('pulse_rate', '')} bpm", 'range': '60-100', 'unit': 'bpm'},
         {'description': 'Systolic BP', 'result': data.get('systolic_blood_pressure', ''), 'range': '90-140', 'unit': 'mmHg'},
-        {'description': 'Diastolic BP', 'result': data.get('diastolic_blood_pressure', ''), 'range': '60-140', 'unit': 'mmHg'}
+        {'description': 'Diastolic BP', 'result': data.get('diastolic_blood_pressure', ''), 'range': '60-140', 'unit': 'mmHg'},
+        {'description': 'Hemoglobin', 'result': f"{data.get('hemoglobin_level', '')} g/dL", 'range': '12.0-15.5', 'unit': 'g/dL'}
     ]
     pdf.test_table_1(test_info_vitals)
 
@@ -371,10 +373,10 @@ def save_response(data):
         # columns to insert (must match the table created in init_db)
         cols = [
             "collection_date", "report_date", "report_id", "patient_id", "patient_name",
-            "patient_age_gender", "patient_referee", "patient_phone", "weight", "height",
+            "patient_age", "patient_gender", "patient_referee", "patient_phone", "weight", "height",
             "bmi", "pulse_rate","systolic_blood_pressure", "diastolic_blood_pressure", "o2_level", "temperature", "vision",
             "breathing", "hearing", "skin_condition", "oral_health", "urine_color",
-            "hair_loss", "nail_changes", "cataract", "disabilities"
+            "hair_loss", "nail_changes", "cataract", "disabilities", "hemoglobin_level"
         ]
 
         # Prepare values (parse dates)
@@ -449,7 +451,8 @@ def init_db():
                 report_id INTEGER,
                 patient_id INTEGER,
                 patient_name VARCHAR(100),
-                patient_age_gender VARCHAR(50),
+                patient_age INTEGER,
+                patient_gender VARCHAR(10),
                 patient_referee VARCHAR(100),
                 patient_phone VARCHAR(20),
                 weight NUMERIC(7,2),
@@ -470,6 +473,7 @@ def init_db():
                 nail_changes TEXT,
                 cataract TEXT,
                 disabilities TEXT,
+                hemoglobin_level NUMERIC(5,2),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -545,7 +549,8 @@ def report_generation_page():
             "report_ID": int(st.number_input("Report ID", min_value=0, value=1001)),
             "patient_ID": int(st.number_input("Patient ID", min_value=0, value=5001)),
             "patient_name": st.text_input("Patient Name", value="John Doe"),
-            "patient_age_gender": st.text_input("Patient Age/Gender", value="30/M"),
+            "patient_age": st.number_input("Patient Age", min_value=0, max_value=150, value=30),
+            "patient_gender": st.selectbox("Gender", ["Male", "Female", "Other"], index=0),
             "patient_referee": st.text_input("Referred By", value="Dr. Smith"),
             "patient_phone": st.text_input("Phone Number", value="9876543210"),
             "email": st.text_input("Email (optional)", value="", placeholder="Enter email to send the report"),
@@ -579,7 +584,8 @@ def report_generation_page():
                                  ["No", "Yes, diagnosed by a doctor", "Yes, not diagnosed yet"], index=0),
             "disabilities": st.radio("Do you have any physical disabilities?",
                                      ["No", "Yes, partial mobility issues", "Yes, require walking aids",
-                                      "Yes, fully dependent on assistance"], index=0)
+                                      "Yes, fully dependent on assistance"], index=0),
+            "hemoglobin_level": st.number_input("Hemoglobin Level (g/dL)", min_value=0.0, max_value=25.0, value=12.5, step=0.1, format="%.1f")
         }
         uploaded_pdf = st.file_uploader("Upload a PDF to merge with the report (optional)", type=["pdf"])
         submit = st.form_submit_button("Generate PDF")
@@ -629,7 +635,8 @@ def report_generation_page():
                         data.get("report_ID"),
                         data.get("patient_ID"),
                         data.get("patient_name"),
-                        data.get("patient_age_gender"),
+                        data.get("patient_age"),
+                        data.get("patient_gender"),
                         data.get("patient_referee"),
                         data.get("patient_phone"),
                         data.get("weight"),

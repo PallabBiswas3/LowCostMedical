@@ -11,6 +11,104 @@ import gspread
 from dotenv import load_dotenv
 from datetime import datetime
 from fpdf import FPDF
+import time
+from streamlit_extras.stylable_container import stylable_container
+
+# Set page config
+st.set_page_config(
+    page_title="Medical Diagnostic Report Generator",
+    page_icon="🏥",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Custom CSS for better styling
+def load_css():
+    return """
+    <style>
+        /* Main container */
+        .main {
+            background-color: #f8f9fa;
+        }
+        
+        /* Headers */
+        h1, h2, h3 {
+            color: #2c3e50;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        /* Sidebar */
+        .css-1d391kg {
+            background-color: #2c3e50;
+            color: white;
+        }
+        
+        /* Buttons */
+        .stButton>button {
+            background-color: #3498db;
+            color: white;
+            border-radius: 5px;
+            padding: 0.5rem 1rem;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        
+        .stButton>button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Form elements */
+        .stTextInput>div>div>input, 
+        .stNumberInput>div>div>input,
+        .stSelectbox>div>div>select {
+            border-radius: 5px;
+            border: 1px solid #bdc3c7;
+            padding: 0.5rem;
+        }
+        
+        /* Cards */
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Success/Error messages */
+        .stAlert {
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+        
+        /* Loading spinner */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+    </style>
+    """
+
+# Add custom CSS
+st.markdown(load_css(), unsafe_allow_html=True)
 
 # -------------------------
 # Load environment variables
@@ -491,212 +589,770 @@ if "authenticated" not in st.session_state:
 if "current_page" not in st.session_state:
     st.session_state.current_page = "login"
 
+def add_login_styles():
+    st.markdown("""
+    <style>
+        .login-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: linear-gradient(145deg, #f5f7fa 0%, #e4e8eb 100%);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.8s ease-in-out;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #2c3e50;
+        }
+        
+        .login-header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #3498db, #8e44ad);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .login-header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+        
+        .stTextInput>div>div>input, 
+        .stTextInput>div>div>input:focus {
+            border-radius: 8px;
+            border: 1px solid #dfe6e9;
+            padding: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .stTextInput>div>div>input:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        .stButton>button {
+            width: 100%;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stButton>button:first-of-type {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+        }
+        
+        .stButton>button:last-of-type {
+            background: linear-gradient(45deg, #2ecc71, #27ae60);
+        }
+        
+        .stButton>button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 1.5rem 0;
+            color: #95a5a6;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #dfe6e9;
+        }
+        
+        .divider:not(:empty)::before {
+            margin-right: 1em;
+        }
+        
+        .divider:not(:empty)::after {
+            margin-left: 1em;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
 def login_page():
-    st.markdown("<style>/* small UI reset to avoid huge CSS injection issues */</style>", unsafe_allow_html=True)
-    st.header("Welcome — Sign in")
-    username = st.text_input("Username", key="login_username")
-    password = st.text_input("Password", type="password", key="login_password")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Sign In"):
-            if authenticate(username, password):
-                st.session_state.authenticated = True
-                st.session_state.current_page = "generate_report"
-                st.experimental_rerun()
-            else:
-                st.error("Invalid username or password")
-    with col2:
-        if st.button("Register"):
-            st.session_state.current_page = "register"
-            st.experimental_rerun()
+    add_login_styles()
+    
+    # Main container with animation
+    with st.container():
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown("""
+            <div class="login-container">
+                <div class="login-header">
+                    <h1>Welcome Back</h1>
+                    <p>Sign in to access your dashboard</p>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # Login form
+            with st.form("login_form"):
+                username = st.text_input("👤 Username", key="login_username")
+                password = st.text_input("🔑 Password", type="password", key="login_password")
+                
+                # Form buttons
+                col1, col2 = st.columns([1, 1])
+                with col1:
+                    login_btn = st.form_submit_button("Sign In", type="primary")
+                with col2:
+                    register_btn = st.form_submit_button("Create Account")
+                
+                # Form submission handling
+                if login_btn:
+                    if authenticate(username, password):
+                        st.session_state.authenticated = True
+                        st.session_state.current_page = "generate_report"
+                        st.balloons()
+                        st.rerun()
+                    else:
+                        st.error("❌ Invalid username or password")
+                
+                if register_btn:
+                    st.session_state.current_page = "register"
+                    st.rerun()
+            
+            # Footer with divider and signup link
+            st.markdown("""
+                <div class="divider">or</div>
+                <div style="text-align: center; margin-top: 1.5rem;">
+                    <p style="color: #7f8c8d;">Don't have an account? <a href="#" style="color: #3498db; text-decoration: none; font-weight: 600;" onclick="window.location.href='?page=register'">Sign up</a></p>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
 def register_page():
-    st.header("Create Account")
-    new_username = st.text_input("Username", key="reg_username")
-    new_password = st.text_input("Password", type="password", key="reg_password")
-    confirm_password = st.text_input("Confirm Password", type="password", key="reg_confirm")
-    if st.button("Create Account"):
-        if not new_username or not new_password:
-            st.error("Username and password are required")
-        elif new_password != confirm_password:
-            st.error("Passwords do not match")
-        else:
-            success, message = register_user(new_username, new_password)
-            if success:
-                st.success(message)
-                st.session_state.current_page = "login"
-                st.experimental_rerun()
-            else:
-                st.error(message)
+    st.markdown("""
+    <style>
+        .register-card {
+            max-width: 500px;
+            margin: 2rem auto;
+            padding: 2.5rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            animation: slideIn 0.6s ease-out;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .register-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .register-header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #4a90e2, #8e44ad);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        
+        .register-header p {
+            color: #6c757d;
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #495057;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        .form-control:focus {
+            border-color: #4a90e2;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+            outline: none;
+        }
+        
+        .btn {
+            display: inline-block;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            user-select: none;
+            border: 1px solid transparent;
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            line-height: 1.5;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #4a90e2, #8e44ad);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4);
+        }
+        
+        .btn-outline-secondary {
+            background: transparent;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+        }
+        
+        .btn-outline-secondary:hover {
+            background: #f8f9fa;
+            border-color: #adb5bd;
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 1.5rem 0;
+            color: #adb5bd;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .divider:not(:empty)::before {
+            margin-right: 1em;
+        }
+        
+        .divider:not(:empty)::after {
+            margin-left: 1em;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .input-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            font-size: 1.1rem;
+        }
+        
+        .input-with-icon {
+            padding-left: 40px !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    with st.container():
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown("""
+            <div class="register-card">
+                <div class="register-header">
+                    <h1>Create Account</h1>
+                    <p>Join our community today</p>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            with st.form("register_form"):
+                st.markdown("""
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <div style="position: relative;">
+                        <span class="input-icon">👤</span>
+                        <input type="text" id="username" class="form-control input-with-icon" placeholder="Enter your username" name="username" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div style="position: relative;">
+                        <span class="input-icon">🔒</span>
+                        <input type="password" id="password" class="form-control input-with-icon" placeholder="Create a password" name="password" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password">Confirm Password</label>
+                    <div style="position: relative;">
+                        <span class="input-icon">✅</span>
+                        <input type="password" id="confirm_password" class="form-control input-with-icon" placeholder="Confirm your password" name="confirm_password" required>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Form submission handling
+                col1, col2 = st.columns(2)
+                with col1:
+                    back_btn = st.form_submit_button("Back to Sign In", type="secondary")
+                with col2:
+                    register_btn = st.form_submit_button("Create Account", type="primary")
+                
+                if back_btn:
+                    st.session_state.current_page = "login"
+                    st.rerun()
+                    
+                if register_btn:
+                    username = st.session_state.get('reg_username', '')
+                    password = st.session_state.get('reg_password', '')
+                    confirm_password = st.session_state.get('confirm_password', '')
+                    
+                    if password != confirm_password:
+                        st.error("❌ Passwords do not match!")
+                    else:
+                        success, message = register_user(username, password)
+                        if success:
+                            st.success(f"✅ {message}")
+                            st.balloons()
+                            time.sleep(1)
+                            st.session_state.current_page = "login"
+                            st.rerun()
+                        else:
+                            st.error(f"❌ {message}")
+            
+            st.markdown("</div>", unsafe_allow_html=True)
 
-
-# -------------------------
-# Report generation page
-# -------------------------
 def report_generation_page():
-    st.title("Medical Diagnostic Report Generator")
+    # Sidebar for navigation
+    with st.sidebar:
+        st.image("assets/logo.png", width=200)  # Make sure you have a logo.png in assets folder
+        st.markdown("### Navigation")
+        if st.button("🔄 Refresh Page"):
+            st.rerun()
+        
+        st.markdown("---")
+        st.markdown("### Quick Links")
+        st.markdown("""
+        - [Report History](#)
+        - [Patient Records](#)
+        - [Settings](#)
+        """)
+        
+        st.markdown("---")
+        st.markdown("### Support")
+        st.markdown("Need help? Contact support@example.com")
+    
+    # Main content
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.title("📋 Medical Diagnostic Report Generator")
+        st.caption("Fill in the patient details to generate a comprehensive medical report")
+    with col2:
+        st.markdown("")
+        if st.button("🔄 Reset Form", key="reset_form", type="secondary"):
+            st.session_state.clear()
+            st.rerun()
 
     # Show Google Sheets init error if any
     if sheet_init_error:
         st.warning(f"Google Sheets init failed: {sheet_init_error}. Sheet features will be disabled.")
 
     final_pdf_path = None
+    # Main form with improved layout
     with st.form(key="input_form"):
-        st.write("Enter patient details:")
-        data = {
-            "collection_date": st.text_input("Collection Date (YYYY-MM-DD)", value="2025-04-15"),
-            "report_date": st.text_input("Report Date (YYYY-MM-DD)", value="2025-04-15"),
-            "report_ID": int(st.number_input("Report ID", min_value=0, value=1001)),
-            "patient_ID": int(st.number_input("Patient ID", min_value=0, value=5001)),
-            "patient_name": st.text_input("Patient Name", value="John Doe"),
-            "patient_age": st.number_input("Patient Age", min_value=0, max_value=150, value=30),
-            "patient_gender": st.selectbox("Gender", ["Male", "Female", "Other"], index=0),
-            "patient_referee": st.text_input("Referred By", value="Dr. Smith"),
-            "patient_phone": st.text_input("Phone Number", value="9876543210"),
-            "email": st.text_input("Email (optional)", value="", placeholder="Enter email to send the report"),
-            "weight": st.number_input("Weight (kg)", min_value=0.0, value=0.0, format="%.2f"),
-            "height": st.number_input("Height (cm)", min_value=0.0, value=0.0, format="%.2f"),
-            "pulse_rate": int(st.number_input("Pulse Rate (bpm)", min_value=0, value=72)),
-            "Systolic_blood_pressure": st.number_input("Systolic Blood Pressure (mmHg)", value=120),
-            "Diastolic_blood_pressure": st.number_input("Diastolic Blood Pressure (mmHg)", value=80),
-            "o2_level": st.number_input("SpO2 (%)", value=98),
-            "temperature": st.number_input("Temperature (°F)", min_value=80.0, value=98.6, format="%.1f"),
-            "hemoglobin_level": st.number_input("Hemoglobin Level (g/dL)", min_value=0.0, max_value=25.0, value=12.5, step=0.1, format="%.1f"),
-            "vision": st.radio("Can you see clearly without glasses?", ["Yes", "No", "Not Sure"], index=0),
-            "breathing": st.radio("Do you experience difficulty in breathing?",
-                                  ["No difficulty", "Often, even at rest", "Occasionally, during physical activity",
-                                   "Only during certain conditions"], index=0),
-            "hearing": st.radio("Do you have any difficulty in hearing?",
-                                ["No", "Yes, in one ear", "Yes, in both ears", "Not Sure"], index=0),
-            "skin_condition": st.radio("Do you have any visible skin conditions?",
-                                       ["Not Sure", "Yes, mild", "Yes, moderate", "Yes, severe"], index=0),
-            "oral_health": st.radio("Do you experience any mouth conditions?",
-                                    ["No issues", "Bleeding gums", "Bad breath", "Frequent mouth ulcers",
-                                     "Tooth pain or sensitivity"], index=0),
-            "urine_color": st.radio("What is your usual urine colour?",
-                                    ["Clear", "Pale yellow", "Dark yellow", "Brownish/red (seek medical attention)"],
-                                    index=0),
-            "hair_loss": st.radio("Have you noticed significant hair loss recently?",
-                                  ["No", "Yes, mild hair loss", "Yes, moderate hair loss", "Yes, severe hair loss"],
-                                  index=0),
-            "nail_changes": st.radio("Have you noticed any unusual changes in your nail colour?",
-                                     ["No", "Yes, white spots", "Yes, yellowing", "Yes, dark streaks"], index=0),
-            "cataract": st.radio("Have you been diagnosed with or noticed signs of cataract?",
-                                 ["No", "Yes, diagnosed by a doctor", "Yes, not diagnosed yet"], index=0),
-            "disabilities": st.radio("Do you have any physical disabilities?",
-                                     ["No", "Yes, partial mobility issues", "Yes, require walking aids",
-                                      "Yes, fully dependent on assistance"], index=0)
+        # Personal Information Section
+        with st.expander("👤 Personal Information", expanded=True):
+            st.subheader("Patient Details")
+            col1, col2 = st.columns(2)
+            with col1:
+                data = {
+                    "patient_name": st.text_input("Full Name", value="John Doe", key="patient_name"),
+                    "patient_age": st.number_input("Age", min_value=0, max_value=150, value=30, key="patient_age"),
+                    "patient_gender": st.selectbox("Gender", ["Male", "Female", "Other"], index=0, key="patient_gender"),
+                    "patient_phone": st.text_input("Phone Number", value="9876543210", key="patient_phone"),
+                    "email": st.text_input("Email (for report delivery)", value="", placeholder="patient@example.com", key="email"),
+                }
+            with col2:
+                data.update({
+                    "collection_date": st.date_input("Collection Date", value=datetime.now().date(), key="collection_date"),
+                    "report_date": st.date_input("Report Date", value=datetime.now().date(), key="report_date"),
+                    "report_ID": int(st.number_input("Report ID", min_value=0, value=1001, key="report_id")),
+                    "patient_ID": int(st.number_input("Patient ID", min_value=0, value=5001, key="patient_id")),
+                    "patient_referee": st.text_input("Referred By", value="Dr. Smith", key="patient_referee"),
+                })
+        
+        # Vitals Section
+        with st.expander("💓 Vitals", expanded=True):
+            st.subheader("Vital Signs")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                data.update({
+                    "weight": st.number_input("Weight (kg)", min_value=0.0, value=70.0, format="%.1f", key="weight"),
+                    "height": st.number_input("Height (cm)", min_value=0.0, value=170.0, format="%.1f", key="height"),
+                    "temperature": st.number_input("Temperature (°F)", min_value=90.0, max_value=110.0, value=98.6, step=0.1, key="temperature"),
+                })
+            with col2:
+                data.update({
+                    "pulse_rate": int(st.number_input("Pulse Rate (bpm)", min_value=0, max_value=200, value=72, key="pulse_rate")),
+                    "Systolic_blood_pressure": st.number_input("Systolic BP (mmHg)", min_value=0, max_value=300, value=120, key="systolic"),
+                    "Diastolic_blood_pressure": st.number_input("Diastolic BP (mmHg)", min_value=0, max_value=200, value=80, key="diastolic"),
+                })
+            with col3:
+                data.update({
+                    "o2_level": st.number_input("SpO2 (%)", min_value=0, max_value=100, value=98, key="o2"),
+                    "hemoglobin_level": st.number_input("Hemoglobin (g/dL)", min_value=0.0, max_value=25.0, value=12.5, step=0.1, key="hemoglobin"),
+                })
+        
+        # Health Assessment Section
+        with st.expander("🏥 Health Assessment", expanded=False):
+            st.subheader("Health Assessment")
+            col1, col2 = st.columns(2)
+            with col1:
+                data.update({
+                    "vision": st.radio("Vision", ["Clear", "Blurry", "Needs Glasses"], index=0, key="vision"),
+                    "breathing": st.radio("Breathing", ["Normal", "Slight Difficulty", "Labored"], index=0, key="breathing"),
+                    "hearing": st.radio("Hearing", ["Normal", "Mild Loss", "Significant Loss"], index=0, key="hearing"),
+                })
+            with col2:
+                data.update({
+                    "skin_condition": st.radio("Skin Condition", ["Clear", "Mild Issues", "Severe Issues"], index=0, key="skin"),
+                    "oral_health": st.radio("Oral Health", ["Good", "Fair", "Poor"], index=0, key="oral"),
+                })
+        
+        # Additional Information Section
+        with st.expander("📝 Additional Information", expanded=False):
+            st.subheader("Additional Details")
+            data.update({
+                "urine_color": st.selectbox("Urine Color", ["Pale Yellow", "Clear", "Dark Yellow", "Other"], index=0, key="urine"),
+                "hair_loss": st.select_slider("Hair Loss", ["None", "Mild", "Moderate", "Severe"], value="None", key="hair"),
+                "nail_changes": st.checkbox("Nail Abnormalities", value=False, key="nails"),
+                "cataract": st.checkbox("Cataract Present", value=False, key="cataract"),
+                "disabilities": st.text_area("Any Disabilities or Additional Notes", "", key="disabilities"),
+            })
             
-        }
-        uploaded_pdf = st.file_uploader("Upload a PDF to merge with the report (optional)", type=["pdf"])
-        submit = st.form_submit_button("Generate PDF")
+            # File uploader with better styling
+            with stylable_container(
+                key="file_uploader",
+                css_styles="""
+                    div[data-testid="stFileUploader"] {
+                        border: 2px dashed #3498db;
+                        border-radius: 10px;
+                        padding: 20px;
+                        text-align: center;
+                        background-color: #f8f9fa;
+                    }
+                """,
+            ):
+                # Additional health assessment questions
+                with st.expander("🧠 Additional Health Assessment", expanded=False):
+                    st.subheader("Additional Health Questions")
+                    
+                    data.update({
+                        "breathing": st.radio("Do you experience difficulty in breathing?",
+                                           ["No difficulty", "Often, even at rest", "Occasionally, during physical activity",
+                                            "Only during certain conditions"], index=0),
+                        "hearing": st.radio("Do you have any difficulty in hearing?",
+                                          ["No", "Yes, in one ear", "Yes, in both ears", "Not Sure"], index=0),
+                        "skin_condition": st.radio("Do you have any visible skin conditions?",
+                                                 ["Not Sure", "Yes, mild", "Yes, moderate", "Yes, severe"], index=0),
+                        "oral_health": st.radio("Do you experience any mouth conditions?",
+                                              ["No issues", "Bleeding gums", "Bad breath", "Frequent mouth ulcers",
+                                               "Tooth pain or sensitivity"], index=0),
+                        "urine_color": st.radio("What is your usual urine colour?",
+                                              ["Clear", "Pale yellow", "Dark yellow", "Brownish/red (seek medical attention)"],
+                                              index=0),
+                        "hair_loss": st.radio("Have you noticed significant hair loss recently?",
+                                            ["No", "Yes, mild hair loss", "Yes, moderate hair loss", "Yes, severe hair loss"],
+                                            index=0),
+                        "nail_changes": st.radio("Have you noticed any unusual changes in your nail colour?",
+                                               ["No", "Yes, white spots", "Yes, yellowing", "Yes, dark streaks"], 
+                                               index=0),
+                        "cataract": st.radio("Have you been diagnosed with or noticed signs of cataract?",
+                                           ["No", "Yes, diagnosed by a doctor", "Yes, not diagnosed yet"], 
+                                           index=0),
+                        "disabilities": st.radio("Do you have any physical disabilities?",
+                                               ["No", "Yes, partial mobility issues", "Yes, require walking aids",
+                                                "Yes, fully dependent on assistance"], 
+                                               index=0)
+                    })
+            
+                # File uploader
+                uploaded_pdf = st.file_uploader("Upload a PDF to merge with the report (optional)", type=["pdf"])
+                
+                # Single submit button centered
+                submit_button = st.form_submit_button(
+                    "🚀 Generate Report",
+                    use_container_width=True,
+                    type="primary"
+                )
 
-    if submit:
-        try:
-            # Normalize dates for DB but keep string for display
-            data["collection_date"] = data.get("collection_date")
-            data["report_date"] = data.get("report_date")
-
-            # Calculate BMI and attach
-            data["bmi"] = calculate_bmi(data.get("weight"), data.get("height"))
-
-            # Save to DB
+    # Only show the form if we're not showing the success message
+    if 'report_generated' not in st.session_state or not st.session_state.report_generated:
+        if submit_button:
             try:
-                save_response(data)
+                with st.spinner('Generating your report. Please wait...'):
+                    # Add a small delay to show the spinner
+                    time.sleep(1)
+                    
+                    # Show processing animation
+                    with st.status("Processing...", expanded=True) as status:
+                        try:
+                            st.write("🔍 Validating form data...")
+                            time.sleep(0.5)
+                            
+                            # Convert dates to string if they're date objects
+                            if hasattr(data.get("collection_date"), 'strftime'):
+                                data["collection_date"] = data["collection_date"].strftime("%Y-%m-%d")
+                            if hasattr(data.get("report_date"), 'strftime'):
+                                data["report_date"] = data["report_date"].strftime("%Y-%m-%d")
+
+                            # Calculate BMI and attach
+                            data["bmi"] = calculate_bmi(data.get("weight"), data.get("height"))
+                            
+                            st.write("📊 Analyzing health metrics...")
+                            time.sleep(0.5)
+                            
+                            # Save to DB
+                            try:
+                                save_response(data)
+                            except Exception as e:
+                                st.error(f"Failed to save to database: {e}")
+                            
+                            st.write("📑 Generating report...")
+                            time.sleep(0.5)
+                            
+                            # Generate PDF
+                            output_file = create_medical_report(data)
+                            
+                            # Check if we need to merge with uploaded PDF
+                            final_output = output_file
+                            if uploaded_pdf is not None:
+                                st.write("🔄 Merging with uploaded PDF...")
+                                merger = PdfMerger()
+                                merger.append(output_file)
+                                uploaded_path = "generated_files/uploaded.pdf"
+                                os.makedirs(os.path.dirname(uploaded_path), exist_ok=True)
+                                with open(uploaded_path, "wb") as f:
+                                    f.write(uploaded_pdf.getbuffer())
+                                merger.append(uploaded_path)
+                                merged_pdf_path = "generated_files/merged_report.pdf"
+                                merger.write(merged_pdf_path)
+                                merger.close()
+                                final_output = merged_pdf_path
+                            
+                            # Save the final PDF path in session state
+                            st.session_state['final_pdf'] = final_output
+                            
+                            # Success message with emoji
+                            status.update(label="✅ Report generated successfully!", state="complete", expanded=False)
+                            st.balloons()
+                            st.toast('Report generated successfully!', icon='🎉')
+                            
+                        except Exception as e:
+                            st.error(f"❌ An error occurred during form validation: {str(e)}")
+                            status.update(label="❌ Error generating report", state="error")
+                            return
+                        st.session_state.report_generated = True
+                        
+                        # Success card with download button
+                        with st.container():
+                            st.markdown("""
+                            <div class="card">
+                                <h3>🎉 Report Ready!</h3>
+                                <p>Your medical diagnostic report has been generated successfully.</p>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            # Display download button
+                            with open(final_output, "rb") as file:
+                                st.download_button(
+                                    label="📥 Download Report",
+                                    data=file,
+                                    file_name="medical_report.pdf",
+                                    mime="application/pdf",
+                                    use_container_width=True
+                                )
+                        
+                        # Optionally append a row to Google Sheet
+                        if sheet is not None:
+                            try:
+                                row = [
+                                    str(data.get("collection_date") or ""),
+                                    str(data.get("report_date") or ""),
+                                    data.get("report_ID"),
+                                    data.get("patient_ID"),
+                                    data.get("patient_name"),
+                                    data.get("patient_age"),
+                                    data.get("patient_gender"),
+                                    data.get("patient_referee"),
+                                    data.get("patient_phone"),
+                                    data.get("weight"),
+                                    data.get("height"),
+                                    data.get("bmi"),
+                                    data.get("pulse_rate"),
+                                    data.get("Systolic_blood_pressure"),
+                                    data.get("Diastolic_blood_pressure"),
+                                    data.get("o2_level"),
+                                    data.get("temperature"),
+                                    data.get("hemoglobin_level")
+                                ]
+                                sheet.append_row(row)
+                            except Exception as e:
+                                st.warning(f"Could not write to Google Sheet: {e}")
+
+                            # Send email if provided
+                            if data.get("email") and final_output:
+                                try:
+                                    if not SMTP_USER or not SMTP_PASS:
+                                        st.warning("SMTP credentials not set in environment; skipped sending email.")
+                                    else:
+                                        msg = EmailMessage()
+                                        msg["Subject"] = "Medical Diagnostic Report"
+                                        msg["From"] = SMTP_USER
+                                        msg["To"] = data["email"]
+                                        msg.set_content("Attached is your medical diagnostic report.")
+                                        with open(final_output, "rb") as pdf:
+                                            msg.add_attachment(pdf.read(), maintype="application", subtype="pdf", filename="medical_report.pdf")
+
+                                        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+                                            server.starttls()
+                                            server.login(SMTP_USER, SMTP_PASS)
+                                            server.send_message(msg)
+                                        st.success(f"Report sent to {data['email']}")
+                                except Exception as e:
+                                    st.error(f"Error sending email: {e}")
+                                    status.update(label="⚠️ Error sending email", state="error")
+                                    return
+
+                            # Set report as generated
+                            st.session_state.report_generated = True
+                            
+                            # Download and Actions Section
+                            if st.session_state.get('final_pdf'):
+                                st.markdown("---")
+                                st.subheader("Report Ready")
+                                
+                                col1, col2, col3 = st.columns(3)
+                                
+                                with col1:
+                                    with open(st.session_state['final_pdf'], "rb") as pdf_file:
+                                        st.download_button(
+                                            label="⬇️ Download PDF",
+                                            data=pdf_file,
+                                            file_name=f"medical_report_{data.get('patient_name', 'patient').replace(' ', '_')}.pdf",
+                                            mime="application/pdf",
+                                            use_container_width=True
+                                        )
+                                
+                                with col2:
+                                    if st.button("📧 Email Report", use_container_width=True, type="secondary"):
+                                        st.session_state.show_email_modal = True
+                                
+                                with col3:
+                                    if st.button("🔄 Create New Report", use_container_width=True, type="secondary"):
+                                        st.session_state.clear()
+                                        st.rerun()
+                                
+                                # Email modal
+                                if st.session_state.get('show_email_modal', False):
+                                    with st.form("email_form"):
+                                        st.write("### Send Report via Email")
+                                        recipient = st.text_input("Recipient Email", value=data.get('email', ''))
+                                        message = st.text_area("Additional Message", "Please find attached your medical report.")
+                                        
+                                        col1, col2 = st.columns(2)
+                                        with col1:
+                                            if st.form_submit_button("✉️ Send Email"):
+                                                if recipient:
+                                                    try:
+                                                        msg = EmailMessage()
+                                                        msg["Subject"] = f"Medical Report - {data.get('patient_name', '')}"
+                                                        msg["From"] = SMTP_USER
+                                                        msg["To"] = recipient
+                                                        msg.set_content(message)
+                                                        
+                                                        with open(st.session_state['final_pdf'], "rb") as f:
+                                                            msg.add_attachment(
+                                                                f.read(),
+                                                                maintype="application",
+                                                                subtype="pdf",
+                                                                filename=f"medical_report_{data.get('patient_name', 'patient')}.pdf"
+                                                            )
+                                                        
+                                                        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+                                                            server.starttls()
+                                                            server.login(SMTP_USER, SMTP_PASS)
+                                                            server.send_message(msg)
+                                                        
+                                                        st.success(f"✅ Report sent to {recipient}")
+                                                        st.session_state.show_email_modal = False
+                                                        st.rerun()
+                                                    except Exception as e:
+                                                        st.error(f"Failed to send email: {e}")
+                                                else:
+                                                    st.warning("Please enter a recipient email address.")
+                                        
+                                        with col2:
+                                            if st.form_submit_button("❌ Cancel"):
+                                                st.session_state.show_email_modal = False
+                                                st.rerun()
             except Exception as e:
-                st.error(f"Failed to save to database: {e}")
+                st.error(f"Unexpected error while generating report: {e}")
 
-            # Generate PDF
-            output_file = create_medical_report(data)
-            st.success("PDF generated successfully!")
-
-            # Merge uploaded PDF if present
-            if uploaded_pdf is not None:
-                merger = PdfMerger()
-                merger.append(output_file)
-                uploaded_path = "generated_files/uploaded.pdf"
-                with open(uploaded_path, "wb") as f:
-                    f.write(uploaded_pdf.read())
-                merger.append(uploaded_path)
-                merged_pdf_path = "generated_files/merged_report.pdf"
-                merger.write(merged_pdf_path)
-                merger.close()
-                st.session_state['final_pdf'] = merged_pdf_path
-                final_pdf_path = merged_pdf_path
-            else:
-                st.session_state['final_pdf'] = output_file
-                final_pdf_path = output_file
-
-            # Optionally append a row to Google Sheet
-            if sheet is not None:
-                try:
-                    row = [
-                        str(data.get("collection_date") or ""),
-                        str(data.get("report_date") or ""),
-                        data.get("report_ID"),
-                        data.get("patient_ID"),
-                        data.get("patient_name"),
-                        data.get("patient_age"),
-                        data.get("patient_gender"),
-                        data.get("patient_referee"),
-                        data.get("patient_phone"),
-                        data.get("weight"),
-                        data.get("height"),
-                        data.get("bmi"),
-                        data.get("pulse_rate"),
-                        data.get("Systolic_blood_pressure"),
-                        data.get("Diastolic_blood_pressure"),
-                        data.get("o2_level"),
-                        data.get("temperature"),
-                        data.get("hemoglobin_level")
-                    ]
-                    sheet.append_row(row)
-                except Exception as e:
-                    st.warning(f"Could not write to Google Sheet: {e}")
-
-            # Send email if provided
-            if data.get("email") and final_pdf_path:
-                if not SMTP_USER or not SMTP_PASS:
-                    st.warning("SMTP credentials not set in environment; skipped sending email.")
-                else:
-                    try:
-                        msg = EmailMessage()
-                        msg["Subject"] = "Medical Diagnostic Report"
-                        msg["From"] = SMTP_USER
-                        msg["To"] = data["email"]
-                        msg.set_content("Attached is your medical diagnostic report.")
-                        with open(final_pdf_path, "rb") as pdf:
-                            msg.add_attachment(pdf.read(), maintype="application", subtype="pdf", filename="medical_report.pdf")
-
-                        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-                            server.starttls()
-                            server.login(SMTP_USER, SMTP_PASS)
-                            server.send_message(msg)
-                        st.success(f"Report sent to {data['email']}")
-                    except Exception as e:
-                        st.error(f"Error sending email: {e}")
-
-        except Exception as e:
-            st.error(f"Error generating report: {e}")
-            st.session_state['final_pdf'] = None
-
-    # Download button
-    if st.session_state.get('final_pdf'):
-        with open(st.session_state['final_pdf'], "rb") as pdf_file:
-            st.download_button(
-                label="Download PDF",
-                data=pdf_file,
-                file_name="medical_report.pdf",
-                mime="application/pdf"
-            )
-
-    if st.button("Logout"):
-        st.session_state.authenticated = False
-        st.session_state.current_page = "login"
-        # clear final pdf
-        st.session_state.pop('final_pdf', None)
-        st.experimental_rerun()
-
+        # Logout button in the sidebar
+        st.sidebar.markdown("---")
+        if st.sidebar.button("🚪 Logout", use_container_width=True):
+            st.session_state.authenticated = False
+            st.session_state.current_page = "login"
+            st.session_state.pop('final_pdf', None)
+            st.rerun()
 
 # -------------------------
 # App init & routing
@@ -710,9 +1366,9 @@ elif st.session_state.current_page == "register":
 elif st.session_state.current_page == "generate_report":
     if not st.session_state.authenticated:
         st.session_state.current_page = "login"
-        st.experimental_rerun()
+        st.rerun()
     report_generation_page()
 else:
     st.write("Unknown page state. Resetting.")
     st.session_state.current_page = "login"
-    st.experimental_rerun()
+    st.rerun()

@@ -165,6 +165,21 @@ def get_db_connection():
         raise RuntimeError(f"Error connecting to DB: {e}")
 
 
+def get_next_id(conn, id_type):
+    """Get the next available ID for patient or report"""
+    try:
+        cur = conn.cursor()
+        if id_type == 'patient':
+            cur.execute("SELECT COALESCE(MAX(patient_id), 0) + 1 FROM responses")
+        else:  # report
+            cur.execute("SELECT COALESCE(MAX(report_id), 0) + 1 FROM responses")
+        next_id = cur.fetchone()[0]
+        return next_id if next_id is not None else 1
+    except Exception as e:
+        print(f"Error getting next {id_type} ID: {e}")
+        return 1  # Fallback to 1 if there's any error
+
+
 # -------------------------
 # Utility functions
 # -------------------------
@@ -506,30 +521,38 @@ def save_to_google_sheets(data, sheet_name=None):
 
 def save_response(data):
     """
-    Inserts into responses. Builds column list dynamically to avoid mismatches.
+    Inserts into responses. Handles auto-incrementing patient_id and report_id.
     """
     conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
 
+        # Get next available IDs
+        patient_id = get_next_patient_id()
+        report_id = get_next_report_id()
+
         # columns to insert (must match the table created in init_db)
         cols = [
-            "collection_date", "report_date", "report_id", "patient_id", "patient_name",
+            "patient_id", "report_id", "collection_date", "report_date", "patient_name",
             "patient_age", "patient_gender", "patient_referee", "patient_phone", "weight", "height",
-            "bmi", "pulse_rate","systolic_blood_pressure", "diastolic_blood_pressure", "o2_level", "temperature", "vision",
+            "bmi", "pulse_rate", "systolic_blood_pressure", "diastolic_blood_pressure", "o2_level", "temperature", "vision",
             "breathing", "hearing", "skin_condition", "oral_health", "urine_color",
             "hair_loss", "nail_changes", "cataract", "disabilities", "hemoglobin_level"
         ]
 
-        # Prepare values (parse dates)
-        vals = []
-        for c in cols:
+        # Prepare values (parse dates and add IDs)
+        vals = [patient_id, report_id]  # Add the auto-generated IDs first
+        for c in cols[2:]:  # Skip the first two columns as we've already added the IDs
             if c in ("collection_date", "report_date"):
                 parsed = parse_date(data.get(c))
                 vals.append(parsed)
             else:
                 vals.append(data.get(c))
+        
+        # Add the IDs to the data dict for PDF generation
+        data['patient_ID'] = patient_id
+        data['report_ID'] = report_id
 
         placeholders = ", ".join(["%s"] * len(cols))
         sql = f"INSERT INTO responses ({', '.join(cols)}) VALUES ({placeholders})"
@@ -622,10 +645,10 @@ def init_db():
         cur.execute("""
             CREATE TABLE IF NOT EXISTS responses (
                 id SERIAL PRIMARY KEY,
+                patient_id INTEGER,
+                report_id INTEGER,
                 collection_date DATE,
                 report_date DATE,
-                report_id INTEGER,
-                patient_id INTEGER,
                 patient_name VARCHAR(100),
                 patient_age INTEGER,
                 patient_gender VARCHAR(10),

@@ -1041,8 +1041,8 @@ def report_generation_page():
             with col2:
                 data.update({
                     "pulse_rate": int(st.number_input("Pulse Rate (bpm)", min_value=0, max_value=200, value=72, key="pulse_rate")),
-                    "Systolic_blood_pressure": st.number_input("Systolic BP (mmHg)", min_value=0, max_value=300, value=120, key="systolic"),
-                    "Diastolic_blood_pressure": st.number_input("Diastolic BP (mmHg)", min_value=0, max_value=200, value=80, key="diastolic"),
+                    "systolic_blood_pressure": st.number_input("Systolic BP (mmHg)", min_value=0, max_value=300, value=120, key="systolic"),
+                    "diastolic_blood_pressure": st.number_input("Diastolic BP (mmHg)", min_value=0, max_value=200, value=80, key="diastolic"),
                 })
             with col3:
                 data.update({

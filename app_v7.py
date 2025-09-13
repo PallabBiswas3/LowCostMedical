@@ -500,6 +500,39 @@ def save_response(data):
 
 
 # -------------------------
+# Database Helper Functions
+# -------------------------
+def get_next_patient_id():
+    """Get the next available patient ID by finding the maximum ID in the database and adding 1."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT COALESCE(MAX(patient_id), 0) + 1 FROM responses")
+        next_id = cur.fetchone()[0] or 1  # Default to 1 if no records exist
+        return next_id
+    except Exception as e:
+        st.error(f"Error getting next patient ID: {e}")
+        return 1
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+def get_next_report_id():
+    """Get the next available report ID by finding the maximum ID in the database and adding 1."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT COALESCE(MAX(report_id), 0) + 1 FROM responses")
+        next_id = cur.fetchone()[0] or 1001  # Default to 1001 if no records exist
+        return next_id
+    except Exception as e:
+        st.error(f"Error getting next report ID: {e}")
+        return 1001
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+# -------------------------
 # Auth & DB init
 # -------------------------
 def authenticate(username, password):
@@ -997,7 +1030,13 @@ def report_generation_page():
     with col2:
         st.markdown("")
         if st.button("🔄 Reset Form", key="reset_form", type="secondary"):
+            # Clear session state but preserve the next available IDs
+            next_patient_id = get_next_patient_id()
+            next_report_id = get_next_report_id()
             st.session_state.clear()
+            # Set the next available IDs for the new form
+            st.session_state['patient_id'] = next_patient_id
+            st.session_state['report_id'] = next_report_id
             st.rerun()
 
     # Show Google Sheets init error if any
@@ -1023,8 +1062,8 @@ def report_generation_page():
                 data.update({
                     "collection_date": st.date_input("Collection Date", value=datetime.now().date(), key="collection_date"),
                     "report_date": st.date_input("Report Date", value=datetime.now().date(), key="report_date"),
-                    "report_ID": int(st.number_input("Report ID", min_value=0, value=1001, key="report_id")),
-                    "patient_ID": int(st.number_input("Patient ID", min_value=0, value=5001, key="patient_id")),
+                    "report_ID": int(st.number_input("Report ID", min_value=0, value=get_next_report_id(), key="report_id")),
+                    "patient_ID": int(st.number_input("Patient ID", min_value=0, value=get_next_patient_id(), key="patient_id")),
                     "patient_referee": st.text_input("Referred By", value="Dr. Smith", key="patient_referee"),
                 })
         
@@ -1072,8 +1111,8 @@ def report_generation_page():
             data.update({
                 "urine_color": st.selectbox("Urine Color", ["Pale Yellow", "Clear", "Dark Yellow", "Other"], index=0, key="urine"),
                 "hair_loss": st.select_slider("Hair Loss", ["None", "Mild", "Moderate", "Severe"], value="None", key="hair"),
-                "nail_changes": st.checkbox("Nail Abnormalities", value=False, key="nails"),
-                "cataract": st.checkbox("Cataract Present", value=False, key="cataract"),
+                "nail_changes": st.radio("Nail Abnormalities", ["No", "Yes"], index=0, key="nails"),
+                "cataract": st.radio("Cataract Present", ["No", "Yes"], index=0, key="cataract"),
                 "disabilities": st.text_area("Any Disabilities or Additional Notes", "", key="disabilities"),
             })
             
@@ -1241,7 +1280,17 @@ def report_generation_page():
                                     data.get("diastolic_blood_pressure"),
                                     data.get("o2_level"),
                                     data.get("temperature"),
-                                    data.get("hemoglobin_level")
+                                    data.get("hemoglobin_level"),
+                                    data.get("vision", ""),
+                                    data.get("breathing", ""),
+                                    data.get("hearing", ""),
+                                    data.get("skin_condition", ""),
+                                    data.get("oral_health", ""),
+                                    data.get("urine_color", ""),
+                                    data.get("hair_loss", ""),
+                                    data.get("nail_changes", ""),
+                                    data.get("cataract", ""),
+                                    data.get("disabilities", "")
                                 ]
                                 sheet.append_row(row)
                             except Exception as e:
@@ -1349,9 +1398,18 @@ def report_generation_page():
         # Logout button in the sidebar
         st.sidebar.markdown("---")
         if st.sidebar.button("🚪 Logout", use_container_width=True):
+            # Store the next available IDs before clearing the session
+            next_patient_id = get_next_patient_id()
+            next_report_id = get_next_report_id()
+            
+            # Clear session state
             st.session_state.authenticated = False
             st.session_state.current_page = "login"
             st.session_state.pop('final_pdf', None)
+            
+            # Store the next available IDs for when the user logs back in
+            st.session_state['next_patient_id'] = next_patient_id
+            st.session_state['next_report_id'] = next_report_id
             st.rerun()
 
 # -------------------------

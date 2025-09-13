@@ -1237,8 +1237,8 @@ def report_generation_page():
                                     data.get("height"),
                                     data.get("bmi"),
                                     data.get("pulse_rate"),
-                                    data.get("Systolic_blood_pressure"),
-                                    data.get("Diastolic_blood_pressure"),
+                                    data.get("systolic_blood_pressure"),
+                                    data.get("diastolic_blood_pressure"),
                                     data.get("o2_level"),
                                     data.get("temperature"),
                                     data.get("hemoglobin_level")

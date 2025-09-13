@@ -807,9 +807,13 @@ def login_page():
         # Main columns for layout
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            # Add login image at the top with a smaller size
-            st.image("assets/login_image.png")
-            
+            # Add login image and title
+            st.image("assets/login_page1.png")
+            st.markdown("""
+                <h3 style='text-align: center; color: #2c3e50; margin-top: 0;'>
+                    IIT Kharagpur
+                </h3>
+            """, unsafe_allow_html=True)
             
             # Login form
             with st.form("login_form"):
@@ -1072,6 +1076,15 @@ def report_generation_page():
     # Sidebar for navigation
     with st.sidebar:
         st.image("assets/logo.png", width=200)  # Make sure you have a logo.png in assets folder
+        st.markdown("""
+            <h3 style='text-align: center; color: #2c3e50; margin-top: 0;'>
+                Solar Powered Low Cost Medical Device
+            </h3>
+            <p style='text-align: center; color: #7f8c8d; margin-top: -15px;'>
+                IIT Kharagpur
+            </p>
+            <hr style='margin: 1rem 0;'>
+        """, unsafe_allow_html=True)
         st.markdown("### Navigation")
         if st.button("🔄 Refresh Page"):
             st.rerun()

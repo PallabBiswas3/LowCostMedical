@@ -785,15 +785,8 @@ def login_page():
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             # Add login image at the top with a smaller size
-            st.image("assets/login_image.png", width=300,height=200)
+            st.image("assets/login_image.png")
             
-            st.markdown("""
-            <div class="login-container">
-                <div class="login-header">
-                    <h1>Welcome Back</h1>
-                    <p>Sign in to access your dashboard</p>
-                </div>
-            """, unsafe_allow_html=True)
             
             # Login form
             with st.form("login_form"):
@@ -1052,31 +1045,6 @@ def register_page():
             st.markdown("</div>", unsafe_allow_html=True)
 
 def report_generation_page():
-    st.title("📋 Medical Report Generator")
-    st.markdown("---")
-    
-    # Add a section for general questions
-    with st.expander("General Questions", expanded=True):
-        st.subheader("General Information")
-        general_data = {}
-        
-        # Add your general questions here
-        general_data['timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        general_data['full_name'] = st.text_input("Full Name")
-        general_data['age'] = st.number_input("Age", min_value=0, max_value=120, step=1)
-        general_data['gender'] = st.selectbox("Gender", ["", "Male", "Female", "Other"])
-        general_data['email'] = st.text_input("Email Address")
-        general_data['phone'] = st.text_input("Phone Number")
-        general_data['address'] = st.text_area("Address")
-        general_data['medical_history'] = st.text_area("Brief Medical History")
-        
-        if st.button("Save General Information"):
-            if save_to_google_sheets(general_data, "General_Questions"):
-                st.success("General information saved successfully!")
-            else:
-                st.error("Failed to save general information. Please try again.")
-    
-    st.markdown("---")
 
     # Sidebar for navigation
     with st.sidebar:

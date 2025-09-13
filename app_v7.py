@@ -459,6 +459,51 @@ def create_medical_report(data):
 # -------------------------
 # Save response (robust)
 # -------------------------
+def save_to_google_sheets(data, sheet_name=None):
+    """
+    Saves data to a Google Sheet.
+    If sheet_name is provided, it will use that sheet, otherwise uses the default sheet.
+    """
+    if not sheet:
+        st.error("Google Sheets not properly initialized. Check your credentials.")
+        return False
+        
+    try:
+        # Get the worksheet (use the default sheet if no specific sheet name provided)
+        worksheet = sheet if not sheet_name else client.open(GOOGLE_SHEET_NAME).worksheet(sheet_name)
+        
+        # Get all records to check if the data already exists
+        try:
+            records = worksheet.get_all_records()
+        except:
+            # If the sheet is empty, create headers
+            worksheet.append_row(list(data.keys()))
+            records = []
+            
+        # Convert data to list in the same order as headers
+        if records:
+            headers = list(records[0].keys()) if records else list(data.keys())
+            # Add any new headers that don't exist
+            for key in data.keys():
+                if key not in headers:
+                    headers.append(key)
+                    # Update headers in the sheet
+                    worksheet.update('A1', [headers])
+        else:
+            headers = list(data.keys())
+            worksheet.append_row(headers)
+            
+        # Prepare row data with None for any missing columns
+        row_data = [data.get(header, '') for header in headers]
+        
+        # Append the new row
+        worksheet.append_row(row_data)
+        return True
+        
+    except Exception as e:
+        st.error(f"Error saving to Google Sheets: {str(e)}")
+        return False
+
 def save_response(data):
     """
     Inserts into responses. Builds column list dynamically to avoid mismatches.
@@ -970,6 +1015,32 @@ def register_page():
             st.markdown("</div>", unsafe_allow_html=True)
 
 def report_generation_page():
+    st.title("📋 Medical Report Generator")
+    st.markdown("---")
+    
+    # Add a section for general questions
+    with st.expander("General Questions", expanded=True):
+        st.subheader("General Information")
+        general_data = {}
+        
+        # Add your general questions here
+        general_data['timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        general_data['full_name'] = st.text_input("Full Name")
+        general_data['age'] = st.number_input("Age", min_value=0, max_value=120, step=1)
+        general_data['gender'] = st.selectbox("Gender", ["", "Male", "Female", "Other"])
+        general_data['email'] = st.text_input("Email Address")
+        general_data['phone'] = st.text_input("Phone Number")
+        general_data['address'] = st.text_area("Address")
+        general_data['medical_history'] = st.text_area("Brief Medical History")
+        
+        if st.button("Save General Information"):
+            if save_to_google_sheets(general_data, "General_Questions"):
+                st.success("General information saved successfully!")
+            else:
+                st.error("Failed to save general information. Please try again.")
+    
+    st.markdown("---")
+
     # Sidebar for navigation
     with st.sidebar:
         st.image("assets/logo.png", width=200)  # Make sure you have a logo.png in assets folder

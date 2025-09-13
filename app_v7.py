@@ -781,8 +781,12 @@ def login_page():
     
     # Main container with animation
     with st.container():
+        # Main columns for layout
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
+            # Add login image at the top with a smaller size
+            st.image("assets/login_image.png", width=300,height=200)
+            
             st.markdown("""
             <div class="login-container">
                 <div class="login-header">

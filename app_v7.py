@@ -1,6 +1,8 @@
 # app.py
 import os
 import streamlit as st
+import base64
+import json
 import smtplib
 from email.message import EmailMessage
 from PyPDF2 import PdfMerger
@@ -13,6 +15,16 @@ from datetime import datetime
 from fpdf import FPDF
 import time
 from streamlit_extras.stylable_container import stylable_container
+from google.oauth2 import service_account
+
+
+conn = psycopg2.connect(
+    host=st.secrets["DB_HOST"],
+    port=st.secrets["DB_PORT"],
+    dbname=st.secrets["DB_NAME"],
+    user=st.secrets["DB_USER"],
+    password=st.secrets["DB_PASSWORD"]
+)
 
 # Set page config
 st.set_page_config(
@@ -109,45 +121,64 @@ def load_css():
 
 # Add custom CSS
 st.markdown(load_css(), unsafe_allow_html=True)
+# ------------------------- 
+# Load environment variables 
+# -------------------------
+import streamlit as st
+import os
+from dotenv import load_dotenv
 
-# -------------------------
-# Load environment variables
-# -------------------------
 load_dotenv()
 
-DB_NAME = os.getenv("DB_NAME")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
+DB_NAME = os.getenv("DB_NAME", st.secrets.get("DB_NAME"))
+DB_USER = os.getenv("DB_USER", st.secrets.get("DB_USER"))
+DB_PASSWORD = os.getenv("DB_PASSWORD", st.secrets.get("DB_PASSWORD"))
+DB_HOST = os.getenv("DB_HOST", st.secrets.get("DB_HOST", "localhost"))
+DB_PORT = os.getenv("DB_PORT", st.secrets.get("DB_PORT", "5432"))
 
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
-SMTP_USER = os.getenv("SMTP_USER")          # e.g. 10minutemail24@gmail.com
-SMTP_PASS = os.getenv("SMTP_PASS")          # app password or real password (use app password)
+SMTP_HOST = os.getenv("SMTP_HOST", st.secrets.get("SMTP_HOST", "smtp.gmail.com"))
+SMTP_PORT = int(os.getenv("SMTP_PORT", st.secrets.get("SMTP_PORT", 587)))
+SMTP_USER = os.getenv("SMTP_USER", st.secrets.get("SMTP_USER"))
+SMTP_PASS = os.getenv("SMTP_PASS", st.secrets.get("SMTP_PASS"))
 
-SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "credentials.json")
-GOOGLE_SHEET_NAME = os.getenv("GOOGLE_SHEET_NAME", "StreamlitData")
+# Access service account info directly
+GOOGLE_SERVICE_ACCOUNT_INFO = dict(st.secrets["GOOGLE_SERVICE_ACCOUNT_JSON"])
+
+SERVICE_ACCOUNT_CREDS = service_account.Credentials.from_service_account_info(
+    GOOGLE_SERVICE_ACCOUNT_INFO
+)
 
 # -------------------------
 # Google Sheets setup
 # -------------------------
+import gspread
+import streamlit as st
+from google.oauth2 import service_account
+
 sheet = None
 try:
-    scope = [
-        "https://spreadsheets.google.com/feeds",
-        "https://www.googleapis.com/auth/drive"
-    ]
-    creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
+    # Load credentials from secrets.toml
+    GOOGLE_SERVICE_ACCOUNT_INFO = dict(st.secrets["GOOGLE_SERVICE_ACCOUNT_JSON"])
+
+    # Build credentials
+    creds = service_account.Credentials.from_service_account_info(
+        GOOGLE_SERVICE_ACCOUNT_INFO,
+        scopes=["https://www.googleapis.com/auth/spreadsheets",
+                "https://www.googleapis.com/auth/drive"]
+    )
+
+    # Authorize gspread client
     client = gspread.authorize(creds)
-    sheet = client.open(GOOGLE_SHEET_NAME).sheet1
+
+    # Open the Google Sheet
+    SHEET_NAME = "Low Cost Medical"
+    sheet = client.open(SHEET_NAME).sheet1
+
 except Exception as e:
-    # We'll show an error in the UI rather than crash
     sheet = None
     sheet_init_error = str(e)
 else:
     sheet_init_error = None
-
 # -------------------------
 # Helpers: DB connection
 # -------------------------

@@ -8,3 +8,4 @@ oauth2client>=4.1.3
 pandas>=2.0.0
 streamlit-extras
 supabase
+bcrypt

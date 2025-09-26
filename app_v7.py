@@ -4,6 +4,7 @@ import streamlit as st
 import base64
 import json
 import smtplib
+from supabase import create_client, Client
 from email.message import EmailMessage
 from PyPDF2 import PdfMerger
 import psycopg2
@@ -18,13 +19,8 @@ from streamlit_extras.stylable_container import stylable_container
 from google.oauth2 import service_account
 
 
-conn = psycopg2.connect(
-    host=st.secrets["DB_HOST"],
-    port=st.secrets["DB_PORT"],
-    dbname=st.secrets["DB_NAME"],
-    user=st.secrets["DB_USER"],
-    password=st.secrets["DB_PASSWORD"]
-)
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 # Set page config
 st.set_page_config(
@@ -121,57 +117,51 @@ def load_css():
 
 # Add custom CSS
 st.markdown(load_css(), unsafe_allow_html=True)
-# ------------------------- 
-# Load environment variables 
+# -------------------------
+# Imports
 # -------------------------
 import streamlit as st
-import os
-from dotenv import load_dotenv
+import gspread
+from google.oauth2 import service_account
+from supabase import create_client, Client
 
-load_dotenv()
+# -------------------------
+# Load secrets
+# -------------------------
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
-DB_NAME = os.getenv("DB_NAME", st.secrets.get("DB_NAME"))
-DB_USER = os.getenv("DB_USER", st.secrets.get("DB_USER"))
-DB_PASSWORD = os.getenv("DB_PASSWORD", st.secrets.get("DB_PASSWORD"))
-DB_HOST = os.getenv("DB_HOST", st.secrets.get("DB_HOST", "localhost"))
-DB_PORT = os.getenv("DB_PORT", st.secrets.get("DB_PORT", "5432"))
+SMTP_HOST = st.secrets.get("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(st.secrets.get("SMTP_PORT", 587))
+SMTP_USER = st.secrets.get("SMTP_USER")
+SMTP_PASS = st.secrets.get("SMTP_PASS")
 
-SMTP_HOST = os.getenv("SMTP_HOST", st.secrets.get("SMTP_HOST", "smtp.gmail.com"))
-SMTP_PORT = int(os.getenv("SMTP_PORT", st.secrets.get("SMTP_PORT", 587)))
-SMTP_USER = os.getenv("SMTP_USER", st.secrets.get("SMTP_USER"))
-SMTP_PASS = os.getenv("SMTP_PASS", st.secrets.get("SMTP_PASS"))
+# -------------------------
+# Supabase setup
+# -------------------------
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Access service account info directly
-GOOGLE_SERVICE_ACCOUNT_INFO = dict(st.secrets["GOOGLE_SERVICE_ACCOUNT_JSON"])
-
-SERVICE_ACCOUNT_CREDS = service_account.Credentials.from_service_account_info(
-    GOOGLE_SERVICE_ACCOUNT_INFO
-)
+# Example: fetch rows from a table
+def get_users():
+    return supabase.table("users").select("*").execute()
 
 # -------------------------
 # Google Sheets setup
 # -------------------------
-import gspread
-import streamlit as st
-from google.oauth2 import service_account
-
 sheet = None
 try:
-    # Load credentials from secrets.toml
     GOOGLE_SERVICE_ACCOUNT_INFO = dict(st.secrets["GOOGLE_SERVICE_ACCOUNT_JSON"])
 
-    # Build credentials
     creds = service_account.Credentials.from_service_account_info(
         GOOGLE_SERVICE_ACCOUNT_INFO,
-        scopes=["https://www.googleapis.com/auth/spreadsheets",
-                "https://www.googleapis.com/auth/drive"]
+        scopes=[
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
     )
 
-    # Authorize gspread client
     client = gspread.authorize(creds)
-
-    # Open the Google Sheet
-    SHEET_NAME = "Low Cost Medical"
+    SHEET_NAME = st.secrets.get("GOOGLE_SHEET_NAME", "Low Cost Medical")
     sheet = client.open(SHEET_NAME).sheet1
 
 except Exception as e:
@@ -179,6 +169,7 @@ except Exception as e:
     sheet_init_error = str(e)
 else:
     sheet_init_error = None
+
 # -------------------------
 # Helpers: DB connection
 # -------------------------

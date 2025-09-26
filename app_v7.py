@@ -646,56 +646,6 @@ def register_user(username, password):
         return False, f"Error during registration: {str(e)}"
 
 
-def init_db():
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                username VARCHAR(50) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS responses (
-                id SERIAL PRIMARY KEY,
-                patient_id INTEGER,
-                report_id INTEGER,
-                collection_date DATE,
-                report_date DATE,
-                patient_name VARCHAR(100),
-                patient_age INTEGER,
-                patient_gender VARCHAR(10),
-                patient_referee VARCHAR(100),
-                patient_phone VARCHAR(20),
-                weight NUMERIC(7,2),
-                height NUMERIC(7,2),
-                bmi NUMERIC(7,2),
-                pulse_rate INTEGER,
-                systolic_blood_pressure NUMERIC(20),
-                diastolic_blood_pressure NUMERIC(20),
-                o2_level NUMERIC(10),
-                temperature NUMERIC(7,2),
-                vision VARCHAR(50),
-                breathing TEXT,
-                hearing TEXT,
-                skin_condition TEXT,
-                oral_health TEXT,
-                urine_color TEXT,
-                hair_loss TEXT,
-                nail_changes TEXT,
-                cataract TEXT,
-                disabilities TEXT,
-                hemoglobin_level NUMERIC(5,2),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        st.error(f"DB init error: {e}")
 
 
 # -------------------------

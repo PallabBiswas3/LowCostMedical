@@ -175,16 +175,10 @@ else:
 # -------------------------
 def get_db_connection():
     try:
-        conn = psycopg2.connect(
-            dbname=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            host=DB_HOST,
-            port=DB_PORT
-        )
-        return conn
-    except psycopg2.OperationalError as e:
-        raise RuntimeError(f"Error connecting to DB: {e}")
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        return supabase
+    except Exception as e:
+        raise RuntimeError(f"Error connecting to Supabase: {e}")
 
 
 def get_next_id(conn, id_type):

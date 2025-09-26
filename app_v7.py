@@ -1460,7 +1460,6 @@ def report_generation_page():
 # -------------------------
 # App init & routing
 # -------------------------
-init_db()
 
 if st.session_state.current_page == "login":
     login_page()

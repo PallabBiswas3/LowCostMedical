@@ -619,7 +619,7 @@ def get_next_report_id():
 # -------------------------
 # Auth & DB init
 # -------------------------
-dimport bcrypt
+import bcrypt
 from supabase import create_client
 
 # Supabase client (init only once)

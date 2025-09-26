@@ -619,28 +619,50 @@ def get_next_report_id():
 # -------------------------
 # Auth & DB init
 # -------------------------
+dimport bcrypt
+from supabase import create_client
+
+# Supabase client (init only once)
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 def authenticate(username, password):
+    """Check if username/password is valid using Supabase"""
     try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT password FROM users WHERE username = %s", (username,))
-        stored = cur.fetchone()
-        conn.close()
-        return stored and stored[0] == password
-    except Exception:
+        res = supabase.table("users").select("*").eq("username", username).execute()
+        users = res.data
+        if not users:
+            return False  # user not found
+        
+        stored_pw = users[0]["password"]
+
+        # If using bcrypt hashed passwords:
+        return bcrypt.checkpw(password.encode("utf-8"), stored_pw.encode("utf-8"))
+        
+        # If using plain text (not recommended):
+        # return stored_pw == password
+    except Exception as e:
+        st.error(f"Auth error: {e}")
         return False
 
 
 def register_user(username, password):
+    """Register new user in Supabase"""
     try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM users WHERE username = %s", (username,))
-        if cur.fetchone() is not None:
+        # check if username exists
+        res = supabase.table("users").select("*").eq("username", username).execute()
+        if res.data:
             return False, "Username already exists"
-        cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, password))
-        conn.commit()
-        conn.close()
+
+        # hash password
+        hashed_pw = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+        supabase.table("users").insert({
+            "username": username,
+            "password": hashed_pw
+        }).execute()
+
         return True, "Registration successful!"
     except Exception as e:
         return False, f"Error during registration: {str(e)}"

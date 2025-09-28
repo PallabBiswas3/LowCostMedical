@@ -615,12 +615,12 @@ def get_next_id(table_name: str, id_column: str, default_id: int = 1) -> int:
         return default_id
 
 def get_next_patient_id() -> int:
-    """Get the next available patient ID."""
-    return get_next_id("responses", "patient_id", default_id=1)
+    """Get the next available patient ID (starts from 5009 if empty)."""
+    return get_next_id("responses", "patient_id", default_id=5009)
 
 def get_next_report_id() -> int:
-    """Get the next available report ID."""
-    return get_next_id("responses", "report_id", default_id=1001)
+    """Get the next available report ID (starts from 1009 if empty)."""
+    return get_next_id("responses", "report_id", default_id=1009)
 
 # -------------------------
 # Auth & DB init

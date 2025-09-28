@@ -1,6 +1,7 @@
 # Environment variables
 .env
 credentials.json
+
 # Python
 __pycache__/
 *.py[cod]

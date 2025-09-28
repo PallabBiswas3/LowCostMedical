@@ -1,7 +1,7 @@
 # Environment variables
 .env
 credentials.json
-
+.streamlit/secrets.toml
 # Python
 __pycache__/
 *.py[cod]

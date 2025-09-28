@@ -588,19 +588,27 @@ def save_response(data):
 # -------------------------
 def get_next_id(table_name: str, id_column: str, default_id: int = 1) -> int:
     """Generic function to get the next available ID from any table.
-    
-    Args:
-        table_name: Name of the table to query
-        id_column: Name of the ID column
-        default_id: Default ID to return if no records exist
-        
-    Returns:
-        int: The next available ID
+    Safely handles NULLs/non-numeric values and falls back to default_id.
     """
     try:
-        result = supabase.table(table_name).select(id_column).order(id_column, desc=True).limit(1).execute()
+        result = (
+            supabase
+            .table(table_name)
+            .select(id_column)
+            .order(id_column, desc=True)
+            .limit(1)
+            .execute()
+        )
+
         if result.data and len(result.data) > 0:
-            return result.data[0][id_column] + 1
+            raw_val = result.data[0].get(id_column)
+            if raw_val is None:
+                return default_id
+            try:
+                return int(raw_val) + 1
+            except Exception:
+                return default_id
+
         return default_id
     except Exception as e:
         st.error(f"Error getting next ID from {table_name}: {str(e)}")

@@ -700,17 +700,14 @@ def register_user(username: str, password: str) -> tuple[bool, str]:
             bcrypt.gensalt(rounds=12)  # Increased work factor for better security
         ).decode("utf-8")
         
-        # Create new user
-        result = supabase.table("users").insert({
+        # Create new user (insert only known columns to avoid schema errors)
+        # Do not request row representation to minimize schema cache issues
+        supabase.table("users").insert({
             "username": username,
-            "password": hashed_pw,
-            "created_at": datetime.utcnow().isoformat(),
-            "is_active": True
-        }).execute()
-        
-        if not result.data:
-            return False, "Failed to create user account"
-            
+            "password": hashed_pw
+        }, returning='minimal').execute()
+
+        # If no exception, we assume success
         return True, "Registration successful! You can now log in."
         
     except Exception as e:

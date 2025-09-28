@@ -539,48 +539,61 @@ def save_response(data):
     """
     Inserts into responses. Handles auto-incrementing patient_id and report_id.
     """
-    conn = None
     try:
-        conn = get_db_connection()
-        cur = conn.cursor()
+        # Determine IDs: prefer values provided by the form if present, else compute next
+        patient_id = int(data.get('patient_ID') or data.get('patient_id') or get_next_patient_id())
+        report_id = int(data.get('report_ID') or data.get('report_id') or get_next_report_id())
 
-        # Get next available IDs
-        patient_id = get_next_patient_id()
-        report_id = get_next_report_id()
+        # Normalize dates to ISO strings
+        collection_date = data.get('collection_date')
+        report_date = data.get('report_date')
+        if hasattr(collection_date, 'strftime'):
+            collection_date = collection_date.strftime('%Y-%m-%d')
+        if hasattr(report_date, 'strftime'):
+            report_date = report_date.strftime('%Y-%m-%d')
 
-        # columns to insert (must match the table created in init_db)
-        cols = [
-            "patient_id", "report_id", "collection_date", "report_date", "patient_name",
-            "patient_age", "patient_gender", "patient_referee", "patient_phone", "weight", "height",
-            "bmi", "pulse_rate", "systolic_blood_pressure", "diastolic_blood_pressure", "o2_level", "temperature", "vision",
-            "breathing", "hearing", "skin_condition", "oral_health", "urine_color",
-            "hair_loss", "nail_changes", "cataract", "disabilities", "hemoglobin_level"
-        ]
+        payload = {
+            "patient_id": patient_id,
+            "report_id": report_id,
+            "collection_date": collection_date,
+            "report_date": report_date,
+            "patient_name": data.get("patient_name"),
+            "patient_age": data.get("patient_age"),
+            "patient_gender": data.get("patient_gender"),
+            "patient_referee": data.get("patient_referee"),
+            "patient_phone": data.get("patient_phone"),
+            "weight": data.get("weight"),
+            "height": data.get("height"),
+            "bmi": data.get("bmi"),
+            "pulse_rate": data.get("pulse_rate"),
+            "systolic_blood_pressure": data.get("systolic_blood_pressure"),
+            "diastolic_blood_pressure": data.get("diastolic_blood_pressure"),
+            "o2_level": data.get("o2_level"),
+            "temperature": data.get("temperature"),
+            "vision": data.get("vision"),
+            "breathing": data.get("breathing"),
+            "hearing": data.get("hearing"),
+            "skin_condition": data.get("skin_condition"),
+            "oral_health": data.get("oral_health"),
+            "urine_color": data.get("urine_color"),
+            "hair_loss": data.get("hair_loss"),
+            "nail_changes": data.get("nail_changes"),
+            "cataract": data.get("cataract"),
+            "disabilities": data.get("disabilities"),
+            "hemoglobin_level": data.get("hemoglobin_level"),
+        }
 
-        # Prepare values (parse dates and add IDs)
-        vals = [patient_id, report_id]  # Add the auto-generated IDs first
-        for c in cols[2:]:  # Skip the first two columns as we've already added the IDs
-            if c in ("collection_date", "report_date"):
-                parsed = parse_date(data.get(c))
-                vals.append(parsed)
-            else:
-                vals.append(data.get(c))
-        
-        # Add the IDs to the data dict for PDF generation
+        # Insert into Supabase (minimal returning)
+        supabase.table("responses").insert(payload, returning='minimal').execute()
+
+        # Write back IDs for downstream PDF/report use
         data['patient_ID'] = patient_id
         data['report_ID'] = report_id
 
-        placeholders = ", ".join(["%s"] * len(cols))
-        sql = f"INSERT INTO responses ({', '.join(cols)}) VALUES ({placeholders})"
-        cur.execute(sql, tuple(vals))
-        conn.commit()
+        return True
     except Exception as e:
-        if conn:
-            conn.rollback()
+        st.error(f"Error saving response: {e}")
         raise
-    finally:
-        if conn:
-            conn.close()
 
 
 # -------------------------
@@ -1105,6 +1118,11 @@ def register_page():
             st.markdown("</div>", unsafe_allow_html=True)
 
 def report_generation_page():
+    # Initialize next IDs in session on page entry (refresh/login)
+    if 'patient_id' not in st.session_state:
+        st.session_state['patient_id'] = get_next_patient_id()
+    if 'report_id' not in st.session_state:
+        st.session_state['report_id'] = get_next_report_id()
 
     # Sidebar for navigation
     with st.sidebar:
@@ -1174,8 +1192,9 @@ def report_generation_page():
                 data.update({
                     "collection_date": st.date_input("Collection Date", value=datetime.now().date(), key="collection_date"),
                     "report_date": st.date_input("Report Date", value=datetime.now().date(), key="report_date"),
-                    "report_ID": int(st.number_input("Report ID", min_value=0, value=get_next_report_id(), key="report_id")),
-                    "patient_ID": int(st.number_input("Patient ID", min_value=0, value=get_next_patient_id(), key="patient_id")),
+                    # Use session-managed values so they persist and increment correctly
+                    "report_ID": int(st.number_input("Report ID", min_value=0, value=st.session_state['report_id'], key="report_id")),
+                    "patient_ID": int(st.number_input("Patient ID", min_value=0, value=st.session_state['patient_id'], key="patient_id")),
                     "patient_referee": st.text_input("Referred By", value="Dr. Smith", key="patient_referee"),
                 })
         
@@ -1313,6 +1332,9 @@ def report_generation_page():
                             # Save to DB
                             try:
                                 save_response(data)
+                                # Bump session IDs so next form load shows incremented values
+                                st.session_state['patient_id'] = get_next_patient_id()
+                                st.session_state['report_id'] = get_next_report_id()
                             except Exception as e:
                                 st.error(f"Failed to save to database: {e}")
                             

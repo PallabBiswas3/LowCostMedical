@@ -586,35 +586,33 @@ def save_response(data):
 # -------------------------
 # Database Helper Functions
 # -------------------------
-def get_next_patient_id():
-    """Get the next available patient ID by finding the maximum ID in the database and adding 1."""
+def get_next_id(table_name: str, id_column: str, default_id: int = 1) -> int:
+    """Generic function to get the next available ID from any table.
+    
+    Args:
+        table_name: Name of the table to query
+        id_column: Name of the ID column
+        default_id: Default ID to return if no records exist
+        
+    Returns:
+        int: The next available ID
+    """
     try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT COALESCE(MAX(patient_id), 0) + 1 FROM responses")
-        next_id = cur.fetchone()[0] or 1  # Default to 1 if no records exist
-        return next_id
+        result = supabase.table(table_name).select(id_column).order(id_column, desc=True).limit(1).execute()
+        if result.data and len(result.data) > 0:
+            return result.data[0][id_column] + 1
+        return default_id
     except Exception as e:
-        st.error(f"Error getting next patient ID: {e}")
-        return 1
-    finally:
-        if 'conn' in locals():
-            conn.close()
+        st.error(f"Error getting next ID from {table_name}: {str(e)}")
+        return default_id
 
-def get_next_report_id():
-    """Get the next available report ID by finding the maximum ID in the database and adding 1."""
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT COALESCE(MAX(report_id), 0) + 1 FROM responses")
-        next_id = cur.fetchone()[0] or 1001  # Default to 1001 if no records exist
-        return next_id
-    except Exception as e:
-        st.error(f"Error getting next report ID: {e}")
-        return 1001
-    finally:
-        if 'conn' in locals():
-            conn.close()
+def get_next_patient_id() -> int:
+    """Get the next available patient ID."""
+    return get_next_id("responses", "patient_id", default_id=1)
+
+def get_next_report_id() -> int:
+    """Get the next available report ID."""
+    return get_next_id("responses", "report_id", default_id=1001)
 
 # -------------------------
 # Auth & DB init
@@ -627,45 +625,98 @@ SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-def authenticate(username, password):
-    """Check if username/password is valid using Supabase"""
+def authenticate(username: str, password: str) -> bool:
+    """
+    Authenticate a user with username and password using Supabase.
+    
+    Args:
+        username: The username to authenticate
+        password: The password to verify
+        
+    Returns:
+        bool: True if authentication is successful, False otherwise
+    """
+    if not username or not password:
+        return False
+        
     try:
-        res = supabase.table("users").select("*").eq("username", username).execute()
-        users = res.data
-        if not users:
-            return False  # user not found
+        # Get user from database
+        res = supabase.table("users") \
+                     .select("*") \
+                     .eq("username", username.strip()) \
+                     .execute()
         
-        stored_pw = users[0]["password"]
-
-        # If using bcrypt hashed passwords:
-        return bcrypt.checkpw(password.encode("utf-8"), stored_pw.encode("utf-8"))
+        if not res.data or len(res.data) == 0:
+            return False  # User not found
         
-        # If using plain text (not recommended):
-        # return stored_pw == password
+        user = res.data[0]
+        stored_pw = user.get("password", "")
+        
+        if not stored_pw:
+            return False  # No password stored for user
+            
+        # Verify password using bcrypt
+        return bcrypt.checkpw(
+            password.encode("utf-8"), 
+            stored_pw.encode("utf-8")
+        )
+        
     except Exception as e:
-        st.error(f"Auth error: {e}")
+        st.error(f"Authentication error: {str(e)}")
         return False
 
-
-def register_user(username, password):
-    """Register new user in Supabase"""
+def register_user(username: str, password: str) -> tuple[bool, str]:
+    """
+    Register a new user in Supabase with secure password hashing.
+    
+    Args:
+        username: The username to register
+        password: The password to set for the user
+        
+    Returns:
+        tuple: (success: bool, message: str)
+    """
+    if not username or not password:
+        return False, "Username and password are required"
+        
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long"
+        
+    username = username.strip()
+    
     try:
-        # check if username exists
-        res = supabase.table("users").select("*").eq("username", username).execute()
-        if res.data:
+        # Check if username already exists
+        res = supabase.table("users") \
+                     .select("id") \
+                     .eq("username", username) \
+                     .execute()
+        
+        if res.data and len(res.data) > 0:
             return False, "Username already exists"
-
-        # hash password
-        hashed_pw = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-
-        supabase.table("users").insert({
+            
+        # Hash password with bcrypt
+        hashed_pw = bcrypt.hashpw(
+            password.encode("utf-8"), 
+            bcrypt.gensalt(rounds=12)  # Increased work factor for better security
+        ).decode("utf-8")
+        
+        # Create new user
+        result = supabase.table("users").insert({
             "username": username,
-            "password": hashed_pw
+            "password": hashed_pw,
+            "created_at": datetime.utcnow().isoformat(),
+            "is_active": True
         }).execute()
-
-        return True, "Registration successful!"
+        
+        if not result.data:
+            return False, "Failed to create user account"
+            
+        return True, "Registration successful! You can now log in."
+        
     except Exception as e:
-        return False, f"Error during registration: {str(e)}"
+        error_msg = str(e)
+        st.error(f"Registration error: {error_msg}")
+        return False, f"Failed to register user: {error_msg}"
 
 
 

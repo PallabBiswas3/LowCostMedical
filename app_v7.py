@@ -889,6 +889,8 @@ def login_page():
                     if authenticate(username, password):
                         st.session_state.authenticated = True
                         st.session_state.current_page = "generate_report"
+                        # Signal to bump IDs once on first load after login
+                        st.session_state['bump_ids'] = True
                         st.balloons()
                         st.rerun()
                     else:
@@ -1124,6 +1126,16 @@ def report_generation_page():
     if 'report_id' not in st.session_state:
         st.session_state['report_id'] = get_next_report_id()
 
+    # If we just logged in, bump once as requested
+    if st.session_state.pop('bump_ids', False):
+        try:
+            st.session_state['patient_id'] = int(st.session_state['patient_id']) + 1
+            st.session_state['report_id'] = int(st.session_state['report_id']) + 1
+        except Exception:
+            # Fallback to DB next + 1
+            st.session_state['patient_id'] = get_next_patient_id() + 1
+            st.session_state['report_id'] = get_next_report_id() + 1
+
     # Sidebar for navigation
     with st.sidebar:
         st.image("assets/logo.png", width=200)  # Make sure you have a logo.png in assets folder
@@ -1138,6 +1150,13 @@ def report_generation_page():
         """, unsafe_allow_html=True)
         st.markdown("### Navigation")
         if st.button("🔄 Refresh Page"):
+            # Increment IDs on refresh as requested
+            try:
+                st.session_state['patient_id'] = int(st.session_state.get('patient_id', get_next_patient_id())) + 1
+                st.session_state['report_id'] = int(st.session_state.get('report_id', get_next_report_id())) + 1
+            except Exception:
+                st.session_state['patient_id'] = get_next_patient_id() + 1
+                st.session_state['report_id'] = get_next_report_id() + 1
             st.rerun()
         
         st.markdown("---")
@@ -1160,11 +1179,10 @@ def report_generation_page():
     with col2:
         st.markdown("")
         if st.button("🔄 Reset Form", key="reset_form", type="secondary"):
-            # Clear session state but preserve the next available IDs
-            next_patient_id = get_next_patient_id()
-            next_report_id = get_next_report_id()
+            # Compute next IDs and increment by 1 as requested
+            next_patient_id = get_next_patient_id() + 1
+            next_report_id = get_next_report_id() + 1
             st.session_state.clear()
-            # Set the next available IDs for the new form
             st.session_state['patient_id'] = next_patient_id
             st.session_state['report_id'] = next_report_id
             st.rerun()
@@ -1192,9 +1210,9 @@ def report_generation_page():
                 data.update({
                     "collection_date": st.date_input("Collection Date", value=datetime.now().date(), key="collection_date"),
                     "report_date": st.date_input("Report Date", value=datetime.now().date(), key="report_date"),
-                    # Use session-managed values so they persist and increment correctly
-                    "report_ID": int(st.number_input("Report ID", min_value=0, value=st.session_state['report_id'], key="report_id")),
-                    "patient_ID": int(st.number_input("Patient ID", min_value=0, value=st.session_state['patient_id'], key="patient_id")),
+                    # Use session-managed values (no explicit value= to avoid Streamlit warning)
+                    "report_ID": int(st.number_input("Report ID", min_value=0, key="report_id")),
+                    "patient_ID": int(st.number_input("Patient ID", min_value=0, key="patient_id")),
                     "patient_referee": st.text_input("Referred By", value="Dr. Smith", key="patient_referee"),
                 })
         

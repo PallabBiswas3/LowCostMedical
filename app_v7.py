@@ -1053,32 +1053,11 @@ def register_page():
             """, unsafe_allow_html=True)
             
             with st.form("register_form"):
-                st.markdown("""
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <div style="position: relative;">
-                        <span class="input-icon">👤</span>
-                        <input type="text" id="username" class="form-control input-with-icon" placeholder="Enter your username" name="username" required>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <div style="position: relative;">
-                        <span class="input-icon">🔒</span>
-                        <input type="password" id="password" class="form-control input-with-icon" placeholder="Create a password" name="password" required>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="confirm_password">Confirm Password</label>
-                    <div style="position: relative;">
-                        <span class="input-icon">✅</span>
-                        <input type="password" id="confirm_password" class="form-control input-with-icon" placeholder="Confirm your password" name="confirm_password" required>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
+                # Streamlit-native inputs to ensure values are captured
+                username = st.text_input("👤 Username", key="reg_username", help="3-32 characters. Letters, numbers, underscore, dot, and hyphen only.")
+                password = st.text_input("🔒 Password", type="password", key="reg_password", help="At least 8 characters.")
+                confirm_password = st.text_input("✅ Confirm Password", type="password", key="reg_confirm_password")
+
                 # Form submission handling
                 col1, col2 = st.columns(2)
                 with col1:
@@ -1091,22 +1070,32 @@ def register_page():
                     st.rerun()
                     
                 if register_btn:
-                    username = st.session_state.get('reg_username', '')
-                    password = st.session_state.get('reg_password', '')
-                    confirm_password = st.session_state.get('confirm_password', '')
-                    
-                    if password != confirm_password:
+                    u = (username or "").strip()
+                    p = password or ""
+                    cp = confirm_password or ""
+
+                    # Basic validations aligned with register_user()
+                    if not u or not p or not cp:
+                        st.error("❌ Please fill in all fields.")
+                    elif len(p) < 8:
+                        st.error("❌ Password must be at least 8 characters long.")
+                    elif p != cp:
                         st.error("❌ Passwords do not match!")
                     else:
-                        success, message = register_user(username, password)
-                        if success:
-                            st.success(f"✅ {message}")
-                            st.balloons()
-                            time.sleep(1)
-                            st.session_state.current_page = "login"
-                            st.rerun()
+                        # Optional: simple username policy
+                        import re
+                        if not re.fullmatch(r"[A-Za-z0-9_.-]{3,32}", u):
+                            st.error("❌ Username must be 3-32 chars and can include letters, numbers, underscore, dot, and hyphen.")
                         else:
-                            st.error(f"❌ {message}")
+                            success, message = register_user(u, p)
+                            if success:
+                                st.success(f"✅ {message}")
+                                st.balloons()
+                                time.sleep(1)
+                                st.session_state.current_page = "login"
+                                st.rerun()
+                            else:
+                                st.error(f"❌ {message}")
             
             st.markdown("</div>", unsafe_allow_html=True)
 

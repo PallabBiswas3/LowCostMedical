@@ -479,7 +479,7 @@ def create_medical_report(data):
     subjective_comments = analyze_subjective_answers(data)
     all_comments = numerical_comments + subjective_comments
     if all_comments:
-        comments_paragraph = ". ".join(all_comments) + "."
+        comments_paragraph = comments_to_paragraph(all_comments)
         pdf.add_comments(comments_paragraph)
 
     output_file = "generated_files/medical_report.pdf"

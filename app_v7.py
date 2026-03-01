@@ -110,61 +110,63 @@ def load_css():
 
 # Add custom CSS
 st.markdown(load_css(), unsafe_allow_html=True)
+import streamlit as st
+import psycopg2
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 # -------------------------
-# Load environment variables
+# Load Secrets from Streamlit Cloud
 # -------------------------
-load_dotenv()
 
-DB_NAME = os.getenv("DB_NAME")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
+DB_URL = st.secrets["DATABASE_URL"]
 
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
-SMTP_USER = os.getenv("SMTP_USER")          # e.g. 10minutemail24@gmail.com
-SMTP_PASS = os.getenv("SMTP_PASS")          # app password or real password (use app password)
+SMTP_HOST = st.secrets["SMTP_HOST"]
+SMTP_PORT = int(st.secrets["SMTP_PORT"])
+SMTP_USER = st.secrets["SMTP_USER"]
+SMTP_PASS = st.secrets["SMTP_PASS"]
 
-SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "credentials.json")
-GOOGLE_SHEET_NAME = os.getenv("GOOGLE_SHEET_NAME", "StreamlitData")
+GOOGLE_SHEET_NAME = st.secrets["GOOGLE_SHEET_NAME"]
+GOOGLE_SERVICE_ACCOUNT_INFO = st.secrets["GOOGLE_SERVICE_ACCOUNT_JSON"]
 
 # -------------------------
-# Google Sheets setup
+# Google Sheets Setup
 # -------------------------
+
 sheet = None
+sheet_init_error = None
+
 try:
     scope = [
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive"
     ]
-    creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
+
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(
+        GOOGLE_SERVICE_ACCOUNT_INFO,
+        scope
+    )
+
     client = gspread.authorize(creds)
     sheet = client.open(GOOGLE_SHEET_NAME).sheet1
+
 except Exception as e:
-    # We'll show an error in the UI rather than crash
     sheet = None
     sheet_init_error = str(e)
-else:
-    sheet_init_error = None
 
 # -------------------------
-# Helpers: DB connection
+# Database Connection (Supabase)
 # -------------------------
+
 def get_db_connection():
     try:
         conn = psycopg2.connect(
-            dbname=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            host=DB_HOST,
-            port=DB_PORT
+            DB_URL,
+            sslmode="require"   # REQUIRED for Supabase
         )
         return conn
-    except psycopg2.OperationalError as e:
-        raise RuntimeError(f"Error connecting to DB: {e}")
-
+    except Exception as e:
+        raise RuntimeError(f"Database connection error: {e}")
 
 def get_next_id(conn, id_type):
     """Get the next available ID for patient or report"""

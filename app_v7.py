@@ -486,12 +486,16 @@ def save_to_google_sheets(data, sheet_name=None):
         # Convert data to list in the same order as headers
         if records:
             headers = list(records[0].keys()) if records else list(data.keys())
-            # Add any new headers that don't exist
-            for key in data.keys():
-                if key not in headers:
-                    headers.append(key)
-                    # Update headers in the sheet
-                    worksheet.update('A1', [headers])
+            # Add any new headers that don't exist by appending to the end
+            new_headers = [key for key in data.keys() if key not in headers]
+            if new_headers:
+                # Only add new headers without overwriting existing data
+                headers.extend(new_headers)
+                # Find the first empty row to update headers
+                first_empty_row = len(worksheet.get_all_values()) + 1
+                # Update only the header row, not the entire sheet
+                for i, header in enumerate(new_headers):
+                    worksheet.update_cell(1, len(headers) - len(new_headers) + i + 1, header)
         else:
             headers = list(data.keys())
             worksheet.append_row(headers)
@@ -499,7 +503,7 @@ def save_to_google_sheets(data, sheet_name=None):
         # Prepare row data with None for any missing columns
         row_data = [data.get(header, '') for header in headers]
         
-        # Append the new row
+        # Append the new row (this adds to the end, doesn't overwrite)
         worksheet.append_row(row_data)
         return True
         
@@ -1343,40 +1347,10 @@ def report_generation_page():
                                 if st.button("📧 Email This Report", use_container_width=True, type="secondary"):
                                     st.session_state.show_email_modal = True
                         
-                        # Optionally append a row to Google Sheet
+                        # Optionally save to Google Sheet
                         if sheet is not None:
                             try:
-                                row = [
-                                    str(data.get("collection_date") or ""),
-                                    str(data.get("report_date") or ""),
-                                    data.get("report_ID"),
-                                    data.get("patient_ID"),
-                                    data.get("patient_name"),
-                                    data.get("patient_age"),
-                                    data.get("patient_gender"),
-                                    data.get("patient_referee"),
-                                    data.get("patient_phone"),
-                                    data.get("weight"),
-                                    data.get("height"),
-                                    data.get("bmi"),
-                                    data.get("pulse_rate"),
-                                    data.get("systolic_blood_pressure"),
-                                    data.get("diastolic_blood_pressure"),
-                                    data.get("o2_level"),
-                                    data.get("temperature"),
-                                    data.get("hemoglobin_level"),
-                                    data.get("vision", ""),
-                                    data.get("breathing", ""),
-                                    data.get("hearing", ""),
-                                    data.get("skin_condition", ""),
-                                    data.get("oral_health", ""),
-                                    data.get("urine_color", ""),
-                                    data.get("hair_loss", ""),
-                                    data.get("nail_changes", ""),
-                                    data.get("cataract", ""),
-                                    data.get("disabilities", "")
-                                ]
-                                sheet.append_row(row)
+                                save_to_google_sheets(data)
                             except Exception as e:
                                 st.warning(f"Could not write to Google Sheet: {e}")
 

@@ -603,6 +603,19 @@ def get_next_report_id():
 # -------------------------
 # Auth & DB init
 # -------------------------
+# def authenticate(username, password):
+#     try:
+#         conn = get_db_connection()
+#         cur = conn.cursor()
+#         cur.execute("SELECT password FROM users WHERE username = %s", (username,))
+#         stored = cur.fetchone()
+#         conn.close()
+#         return stored and stored[0] == password
+#     except Exception:
+#         return False
+
+# import bcrypt
+
 def authenticate(username, password):
     try:
         conn = get_db_connection()
@@ -610,11 +623,18 @@ def authenticate(username, password):
         cur.execute("SELECT password FROM users WHERE username = %s", (username,))
         stored = cur.fetchone()
         conn.close()
-        return stored and stored[0] == password
-    except Exception:
+
+        if not stored:
+            return False
+
+        stored_password = stored[0]
+
+        # Convert both to bytes for bcrypt
+        return bcrypt.checkpw(password.encode(), stored_password.encode())
+
+    except Exception as e:
+        print("Auth error:", e)
         return False
-
-
 def register_user(username, password):
     try:
         conn = get_db_connection()

@@ -1075,6 +1075,27 @@ def report_generation_page():
             <hr style='margin: 1rem 0;'>
         """, unsafe_allow_html=True)
         st.markdown("### Navigation")
+        
+        # Add prominent reset button
+        if st.button("🔄 Start New Report", use_container_width=True, type="primary"):
+            # Clear only report-related state, keep authentication
+            if 'report_generated' in st.session_state:
+                del st.session_state.report_generated
+            if 'final_pdf' in st.session_state:
+                del st.session_state.final_pdf
+            if 'show_email_modal' in st.session_state:
+                del st.session_state.show_email_modal
+            # Clear form data keys
+            keys_to_clear = ['patient_name', 'patient_age', 'patient_gender', 'patient_phone', 'email',
+                            'collection_date', 'report_date', 'report_id', 'patient_id', 'patient_referee',
+                            'weight', 'height', 'temperature', 'pulse_rate', 'systolic', 'diastolic',
+                            'o2', 'hemoglobin', 'vision', 'breathing', 'hearing', 'skin', 'oral',
+                            'urine', 'hair', 'nails', 'cataract', 'disabilities']
+            for key in keys_to_clear:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.rerun()
+        
         if st.button("🔄 Refresh Page"):
             st.rerun()
         
@@ -1275,7 +1296,7 @@ def report_generation_page():
                             return
                         st.session_state.report_generated = True
                         
-                        # Success card with download button
+                        # Success card with download button and new report option
                         with st.container():
                             st.markdown("""
                             <div class="card">
@@ -1293,6 +1314,34 @@ def report_generation_page():
                                     mime="application/pdf",
                                     use_container_width=True
                                 )
+                            
+                            st.markdown("---")
+                            st.markdown("### Ready for Next Report?")
+                            
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button("🔄 Start New Report", use_container_width=True, type="primary"):
+                                    # Clear only report-related state, keep authentication
+                                    if 'report_generated' in st.session_state:
+                                        del st.session_state.report_generated
+                                    if 'final_pdf' in st.session_state:
+                                        del st.session_state.final_pdf
+                                    if 'show_email_modal' in st.session_state:
+                                        del st.session_state.show_email_modal
+                                    # Clear form data keys
+                                    keys_to_clear = ['patient_name', 'patient_age', 'patient_gender', 'patient_phone', 'email',
+                                                    'collection_date', 'report_date', 'report_id', 'patient_id', 'patient_referee',
+                                                    'weight', 'height', 'temperature', 'pulse_rate', 'systolic', 'diastolic',
+                                                    'o2', 'hemoglobin', 'vision', 'breathing', 'hearing', 'skin', 'oral',
+                                                    'urine', 'hair', 'nails', 'cataract', 'disabilities']
+                                    for key in keys_to_clear:
+                                        if key in st.session_state:
+                                            del st.session_state[key]
+                                    st.rerun()
+                            
+                            with col2:
+                                if st.button("📧 Email This Report", use_container_width=True, type="secondary"):
+                                    st.session_state.show_email_modal = True
                         
                         # Optionally append a row to Google Sheet
                         if sheet is not None:
@@ -1429,6 +1478,24 @@ def report_generation_page():
                                                 st.rerun()
             except Exception as e:
                 st.error(f"Unexpected error while generating report: {e}")
+    
+    # Show message when report is already generated
+    else:
+        st.markdown("---")
+        st.markdown("### ✅ Report Already Generated")
+        st.info("A report has already been generated. Use the 'Start New Report' button in the sidebar to create a new one.")
+        
+        # Show the download button again if the file exists
+        if st.session_state.get('final_pdf'):
+            st.markdown("#### 📥 Download Your Report:")
+            with open(st.session_state['final_pdf'], "rb") as file:
+                st.download_button(
+                    label="Download Report Again",
+                    data=file,
+                    file_name="medical_report.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
 
         # Logout button in the sidebar
         st.sidebar.markdown("---")

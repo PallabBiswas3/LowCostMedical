@@ -1025,31 +1025,9 @@ def register_page():
             """, unsafe_allow_html=True)
             
             with st.form("register_form"):
-                st.markdown("""
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <div style="position: relative;">
-                        <span class="input-icon">👤</span>
-                        <input type="text" id="username" class="form-control input-with-icon" placeholder="Enter your username" name="username" required>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <div style="position: relative;">
-                        <span class="input-icon">🔒</span>
-                        <input type="password" id="password" class="form-control input-with-icon" placeholder="Create a password" name="password" required>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="confirm_password">Confirm Password</label>
-                    <div style="position: relative;">
-                        <span class="input-icon">✅</span>
-                        <input type="password" id="confirm_password" class="form-control input-with-icon" placeholder="Confirm your password" name="confirm_password" required>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                username = st.text_input("👤 Username", key="reg_username", placeholder="Enter your username")
+                password = st.text_input("🔑 Password", type="password", key="reg_password", placeholder="Create a password")
+                confirm_password = st.text_input("✅ Confirm Password", type="password", key="confirm_password", placeholder="Confirm your password")
                 
                 # Form submission handling
                 col1, col2 = st.columns(2)
@@ -1063,10 +1041,11 @@ def register_page():
                     st.rerun()
                     
                 if register_btn:
-                    username = st.text_input("Username", key="reg_username")
-                    password = st.text_input("Password", type="password", key="reg_password")
-                    confirm_password = st.text_input("Confirm Password", type="password", key="confirm_password")
-                    if password != confirm_password:
+                    if not username:
+                        st.error("❌ Please enter a username!")
+                    elif not password:
+                        st.error("❌ Please enter a password!")
+                    elif password != confirm_password:
                         st.error("❌ Passwords do not match!")
                     else:
                         success, message = register_user(username, password)

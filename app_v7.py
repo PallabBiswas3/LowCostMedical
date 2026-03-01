@@ -1052,10 +1052,9 @@ def register_page():
                     st.rerun()
                     
                 if register_btn:
-                    username = st.session_state.get('reg_username', '')
-                    password = st.session_state.get('reg_password', '')
-                    confirm_password = st.session_state.get('confirm_password', '')
-                    
+                    username = st.text_input("Username", key="reg_username")
+                    password = st.text_input("Password", type="password", key="reg_password")
+                    confirm_password = st.text_input("Confirm Password", type="password", key="confirm_password")
                     if password != confirm_password:
                         st.error("❌ Passwords do not match!")
                     else:

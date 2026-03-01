@@ -13,6 +13,7 @@ from datetime import datetime
 from fpdf import FPDF
 import time
 from streamlit_extras.stylable_container import stylable_container
+import bcrypt
 
 # Set page config
 st.set_page_config(
@@ -614,7 +615,7 @@ def get_next_report_id():
 #     except Exception:
 #         return False
 
-# import bcrypt
+ 
 
 def authenticate(username, password):
     try:

@@ -110,10 +110,6 @@ def load_css():
 
 # Add custom CSS
 st.markdown(load_css(), unsafe_allow_html=True)
-import streamlit as st
-import psycopg2
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 
 # -------------------------
 # Load Secrets from Streamlit Cloud
@@ -168,19 +164,6 @@ def get_db_connection():
     except Exception as e:
         raise RuntimeError(f"Database connection error: {e}")
 
-def get_next_id(conn, id_type):
-    """Get the next available ID for patient or report"""
-    try:
-        cur = conn.cursor()
-        if id_type == 'patient':
-            cur.execute("SELECT COALESCE(MAX(patient_id), 0) + 1 FROM responses")
-        else:  # report
-            cur.execute("SELECT COALESCE(MAX(report_id), 0) + 1 FROM responses")
-        next_id = cur.fetchone()[0]
-        return next_id if next_id is not None else 1
-    except Exception as e:
-        print(f"Error getting next {id_type} ID: {e}")
-        return 1  # Fallback to 1 if there's any error
 
 
 # -------------------------
@@ -243,13 +226,15 @@ def analyze_numerical_vitals(data):
             pass
 
     # Blood Pressure
-    bp = data.get('blood_pressure')
-    if bp and isinstance(bp, str) and '/' in bp:
+    systolic = data.get('systolic_blood_pressure')
+    diastolic = data.get('diastolic_blood_pressure')
+    if systolic is not None and diastolic is not None:
         try:
-            systolic, diastolic = map(int, bp.split('/'))
-            if systolic < 90 or diastolic < 60:
+            systolic_val = int(systolic)
+            diastolic_val = int(diastolic)
+            if systolic_val < 90 or diastolic_val < 60:
                 comments.append("The patient has low blood pressure")
-            elif systolic > 120 or diastolic > 80:
+            elif systolic_val > 120 or diastolic_val > 80:
                 comments.append("The patient has high blood pressure")
         except Exception:
             comments.append("Invalid blood pressure reading")
@@ -645,7 +630,10 @@ def register_user(username, password):
         cur.execute("SELECT * FROM users WHERE username = %s", (username,))
         if cur.fetchone() is not None:
             return False, "Username already exists"
-        cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, password))
+        
+        # Hash the password before storing
+        hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_password))
         conn.commit()
         conn.close()
         return True, "Registration successful!"
@@ -1203,16 +1191,16 @@ def report_generation_page():
             with col2:
                 data.update({
                     "skin_condition": st.radio("Skin Condition", ["Clear", "Mild Issues", "Severe Issues"], index=0, key="skin"),
-                    "oral_health": st.radio("Oral Health", ["Good", "Fair", "Poor"], index=0, key="oral"),
+                    "oral_health": st.radio("Oral Health", ["No issues", "Bleeding gums", "Bad breath", "Frequent mouth ulcers", "Tooth pain or sensitivity"], index=0, key="oral"),
                 })
         
         # Additional Information Section
         with st.expander("📝 Additional Information", expanded=False):
             st.subheader("Additional Details")
             data.update({
-                "urine_color": st.selectbox("Urine Color", ["Pale Yellow", "Clear", "Dark Yellow", "Other"], index=0, key="urine"),
-                "hair_loss": st.select_slider("Hair Loss", ["None", "Mild", "Moderate", "Severe"], value="None", key="hair"),
-                "nail_changes": st.radio("Nail Abnormalities", ["No", "Yes"], index=0, key="nails"),
+                "urine_color": st.selectbox("Urine Color", ["Pale yellow", "Clear", "Dark yellow", "Brownish/red (seek medical attention)"], index=0, key="urine"),
+                "hair_loss": st.selectbox("Hair Loss", ["No", "Yes, mild hair loss", "Yes, moderate hair loss", "Yes, severe hair loss"], index=0, key="hair"),
+                "nail_changes": st.radio("Nail Abnormalities", ["No", "Yes, white spots", "Yes, yellowing", "Yes, dark streaks"], index=0, key="nails"),
                 "cataract": st.radio("Cataract Present", ["No", "Yes"], index=0, key="cataract"),
                 "disabilities": st.text_area("Any Disabilities or Additional Notes", "", key="disabilities"),
             })
@@ -1230,39 +1218,6 @@ def report_generation_page():
                     }
                 """,
             ):
-                # Additional health assessment questions
-                with st.expander("🧠 Additional Health Assessment", expanded=False):
-                    st.subheader("Additional Health Questions")
-                    
-                    data.update({
-                        "breathing": st.radio("Do you experience difficulty in breathing?",
-                                           ["No difficulty", "Often, even at rest", "Occasionally, during physical activity",
-                                            "Only during certain conditions"], index=0),
-                        "hearing": st.radio("Do you have any difficulty in hearing?",
-                                          ["No", "Yes, in one ear", "Yes, in both ears", "Not Sure"], index=0),
-                        "skin_condition": st.radio("Do you have any visible skin conditions?",
-                                                 ["Not Sure", "Yes, mild", "Yes, moderate", "Yes, severe"], index=0),
-                        "oral_health": st.radio("Do you experience any mouth conditions?",
-                                              ["No issues", "Bleeding gums", "Bad breath", "Frequent mouth ulcers",
-                                               "Tooth pain or sensitivity"], index=0),
-                        "urine_color": st.radio("What is your usual urine colour?",
-                                              ["Clear", "Pale yellow", "Dark yellow", "Brownish/red (seek medical attention)"],
-                                              index=0),
-                        "hair_loss": st.radio("Have you noticed significant hair loss recently?",
-                                            ["No", "Yes, mild hair loss", "Yes, moderate hair loss", "Yes, severe hair loss"],
-                                            index=0),
-                        "nail_changes": st.radio("Have you noticed any unusual changes in your nail colour?",
-                                               ["No", "Yes, white spots", "Yes, yellowing", "Yes, dark streaks"], 
-                                               index=0),
-                        "cataract": st.radio("Have you been diagnosed with or noticed signs of cataract?",
-                                           ["No", "Yes, diagnosed by a doctor", "Yes, not diagnosed yet"], 
-                                           index=0),
-                        "disabilities": st.radio("Do you have any physical disabilities?",
-                                               ["No", "Yes, partial mobility issues", "Yes, require walking aids",
-                                                "Yes, fully dependent on assistance"], 
-                                               index=0)
-                    })
-            
                 # File uploader
                 uploaded_pdf = st.file_uploader("Upload a PDF to merge with the report (optional)", type=["pdf"])
                 

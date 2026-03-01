@@ -1299,6 +1299,7 @@ def report_generation_page():
                             status.update(label="❌ Error generating report", state="error")
                             return
                         st.session_state.report_generated = True
+                        st.rerun()  # Trigger re-render to show success content
                         
                         # Success card with download button and new report option
                         with st.container():
@@ -1380,6 +1381,7 @@ def report_generation_page():
 
                             # Set report as generated
                             st.session_state.report_generated = True
+                            st.rerun()  # Trigger re-render to show success content
                             
                             # Download and Actions Section
                             if st.session_state.get('final_pdf'):
